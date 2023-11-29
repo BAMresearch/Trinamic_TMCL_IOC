@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "Trinamic_TMCM6214_TMCL_IOC"
+version = "0.1.0"
+description = "A Python package for controlling Trinamic TMCM-6214 motors using Caproto and (an extended) PyTrinamic"
+authors = ["Brian R. Pauw"]
+license = "GPL-3.0-or-later"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+attrs = "23.1.0"
+caproto = "1.1.1"
+Pint = "0.22"
+PyYAML = "6.0.1"
+pytrinamic = { git = "https://github.com/toqduj/PyTrinamic_with_socket.git", rev = "07f2e136d29e8aee875164a9d08857367d5d2754" }
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
