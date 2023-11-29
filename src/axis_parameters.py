@@ -37,8 +37,9 @@ class AxisParameters:
     positive_limit: pint.Quantity = attr.field(default='100 mm', validator=validate_quantity, converter=ureg)
     user_offset: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
 
-    is_moving: bool = attr.field(default=False)
-    has_reached_position: bool = attr.field(default=False)
+    is_moving_RBV: bool = attr.field(default=False)
+    is_homed_RBV: bool = attr.field(default=False)
+    is_position_reached_RBV: bool = attr.field(default=False)
 
     axis_number: int = attr.field(default=0) # axis number on the board
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric

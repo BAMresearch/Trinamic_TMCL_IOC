@@ -37,7 +37,7 @@ class BoardControl:
     
     def await_move_completion(self, axis_index:int):
         self.update_axis_parameters(axis_index)
-        while (not self.axis_parameters[axis_index].has_reached_position) and (self.axis_parameters[axis_index].is_moving):
+        while (not self.axis_parameters[axis_index].is_position_reached_RBV) and (self.axis_parameters[axis_index].is_moving_RBV):
             time.sleep(0.5)
             self.update_axis_parameters(axis_index)
 
@@ -84,7 +84,7 @@ class BoardControl:
             actual_step_coordinate_RBV = int(axis.get_axis_parameter(axis.AP.ActualPosition))
             target_step_coordinate_RBV = int(axis.get_axis_parameter(axis.AP.TargetPosition))
 
-            is_moving = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
-            has_reached_position = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
+            is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
+            is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
 
     # Add other necessary motor control functions

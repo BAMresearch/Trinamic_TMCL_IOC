@@ -23,8 +23,8 @@ axes:
     negative_limit: "-100 mm"
     positive_limit: "100 mm"
     user_offset: "0 mm"
-    is_moving: false
-    has_reached_position: false
+    is_moving_RBV: false
+    is_position_reached_RBV: false
     short_id: "Axis0"
     description: "First Axis"
 
