@@ -1,0 +1,37 @@
+board:
+  ip_address: "192.168.0.253"
+  port_number: 4016
+  board_module_id: 0
+  board_configurable_parameters:
+    101: 1500
+    102: 75
+    # ... other board-level parameters ...
+
+axes:
+  - axis_number: 0
+    configurable_parameters:
+      1: 1000
+      2: 2000
+      # ... other parameters for Axis 0 ...
+    backlash_direction: 1
+    invert_axis_direction: false
+    steps_to_realworld_conversion_quantity: '12345 steps/mm' # 12345 steps = 1 mm (unit defined in base_realworld_unit)
+    base_realworld_unit: "mm"
+    backlash: "0.5 mm"
+    invert_limit_values: false
+    actual_coordinate: "0 mm"
+    negative_limit: "-100 mm"
+    positive_limit: "100 mm"
+    user_offset: "0 mm"
+    is_moving: false
+    has_reached_position: false
+    short_id: "Axis0"
+    description: "First Axis"
+
+  - axis_number: 1
+    # ... configuration for Axis 1 ...
+    # ...
+
+  # ... other axes configurations ...
+
+# Repeat for each axis (0-5)
