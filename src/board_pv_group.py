@@ -8,15 +8,18 @@ from src.board_parameters import BoardParameters
 from src.board_control import BoardControl
 from src.configuration_management import ConfigurationManagement
 from src.create_pv_for_attribute import create_pvs_for_attribute
+from src.motion_control import MotionControl
 
 ureg = pint.UnitRegistry()
 
-@attr.define
+# I don't think we can use attrs here. 
+# @attr.define
 class BoardPVGroup(PVGroup):
     """exposes the board and motor control parameters as PVs on the EPICS channel-access bus with actions to control the motors"""
-    board_parameters: BoardParameters = attr.field()
-    board_control: BoardControl = attr.field()
-    sleep_duration: float = attr.field(default=5.0)  # Default sleep duration in seconds
+    board_parameters: BoardParameters = None # board and its axes parameters
+    board_control: BoardControl = None # low level comms operations
+    motion_control: MotionControl = None # high level motion operations
+    sleep_duration: float = 5.0  # Default sleep duration in seconds
 
     def __init__(self, *args, board_parameters: BoardParameters, **kwargs):
         super().__init__(*args, **kwargs)
@@ -68,66 +71,6 @@ class BoardPVGroup(PVGroup):
                 # Handle other exceptions
                 print(f"Error in periodic_refresh: {e}")
 
-
-
-    async def move_to_realspace_position(self, axis: Union[int, str], position: pint.Quantity, absolute_or_relative: str = 'absolute') -> None:
-        """
-        Move a motor axis to a specified position in real space.
-
-        :param axis: Axis index or its short_id.
-        :param position: Target position as a pint.Quantity with length unit.
-        :param absolute_or_relative: 'absolute' for absolute position, 'relative' for relative movement.
-        """
-        axis_index = self._resolve_axis_index(axis)
-        axis_params = self.board_parameters.axes_parameters[axis_index]
-
-        # Validate position
-        if not hasattr(position, 'units') or position.units not in [ureg.meter, ureg.mm, ureg.cm]:
-            raise ValueError("Position must have a unit of length (m, mm, or cm).")
-
-        if absolute_or_relative == 'absolute':
-            target_position = position
-        elif absolute_or_relative == 'relative':
-            target_position = axis_params.actual_coordinate + position
-        else:
-            raise ValueError("absolute_or_relative must be 'absolute' or 'relative'.")
-
-        if not (axis_params.negative_limit <= target_position <= axis_params.positive_limit):
-            raise ValueError("Target position is outside of the axis motion limits.")
-
-        # Convert target position to steps
-        steps = axis_params.convert_to_steps(target_position)
-
-        # Perform the movement
-        await self.board_control.move_motor(axis_index, steps)
-
-        # Update AxisParameters after the move
-        axis_params.actual_coordinate = target_position
-        # You may also want to update other parameters as necessary
-
-    def _resolve_axis_index(self, axis: Union[int, str]) -> int:
-        if isinstance(axis, str):
-            # Resolve axis index from short_id
-            for i, ap in enumerate(self.board_parameters.axes_parameters):
-                if ap.short_id == axis:
-                    return i
-            raise ValueError(f"No axis found with short_id '{axis}'")
-        elif isinstance(axis, int):
-            return axis
-        else:
-            raise TypeError("Axis must be an int or str")
-
-
-    async def read_axis_state(self, axis_index: int) -> None:
-        """
-        Read and update the state of a specific motor axis.
-
-        :param axis_index: Index of the motor axis.
-        """
-        # Implementation for reading axis state
-        pass
-
-    # Add other necessary methods and functionalities
 
 # Example usage
 if __name__ == '__main__':

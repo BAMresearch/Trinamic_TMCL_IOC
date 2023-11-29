@@ -39,8 +39,6 @@ class MotionControl:
             raise ValueError("Axis must be stopped before moving.")
 
     def _calculate_adjusted_target(self, axis_params: AxisParameters, target_coordinate: ureg.Quantity, absolute_or_relative: str = 'absolute') -> ureg.Quantity:
-        # Validate target coordinate
-        target_coordinate = ureg(target_coordinate) # interpret as pint.Quantity
         # if not isinstance(target_coordinate, ureg.Quantity):
         #     raise TypeError("target_coordinate must be a pint.Quantity")
         
@@ -63,6 +61,7 @@ class MotionControl:
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axis_params = self.board_control.boardpar.axes_parameters[axis_index]
         absolute_or_relative = absolute_or_relative.lower()
+        target_coordinate = ureg(target_coordinate) # interpret as pint.Quantity
 
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
