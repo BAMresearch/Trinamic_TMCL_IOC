@@ -11,13 +11,20 @@ def validate_quantity(instance, attribute, value):
     if not isinstance(value, pint.Quantity):
         raise TypeError("steps_to_realworld must be a pint.Quantity")
 
-# Similar validators can be defined for other attributes
+def validate_user_limits(instance, attribute, value):
+    # Adjusted limits considering the user offset
+    adjusted_negative_limit = instance.negative_user_limit + instance.user_offset
+    adjusted_positive_limit = instance.positive_user_limit + instance.user_offset
+
+    if (adjusted_negative_limit < 0) or (adjusted_positive_limit > instance.stage_motion_limit_RBV):
+        raise ValueError(f"User limits must not exceed the stage motion limits after considering the user offset")
 
 @attr.define
 class AxisParameters:
     configurable_parameters: Dict[int, int] = attr.field(factory=dict)
 
     backlash_direction: int = attr.field(default=1, validator=validate_backlash_direction)
+    # invert axis direction is not implemented yet.
     invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
     # Custom unit conversion factor (e.g., steps to mm or steps to radians)
     steps_to_realworld_conversion_quantity: pint.Quantity = attr.field(
@@ -29,28 +36,49 @@ class AxisParameters:
     backlash: pint.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=ureg)
 
     invert_limit_values: bool = attr.field(default=False)
-    actual_step_coordinate_RBV: int = attr.field(default=0)
-    target_step_coordinate_RBV: int = attr.field(default=0)
     actual_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
     target_coordinate: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
-    negative_limit: pint.Quantity = attr.field(default='-100 mm', validator=validate_quantity, converter=ureg)
-    positive_limit: pint.Quantity = attr.field(default='100 mm', validator=validate_quantity, converter=ureg)
-    user_offset: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
+    # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.
+    stage_motion_limit_RBV: pint.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=ureg)
+    # user limits must always lie within the stage motion limits. It is validated for that when set. They are used in the motor motions to ensure that the motor does not move beyond the stage motion limits.
+    user_offset: pint.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=ureg)
+    negative_user_limit: pint.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=ureg)
+    positive_user_limit: pint.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=ureg)
 
+    # some flags to indicate the state of the axis
     is_moving_RBV: bool = attr.field(default=False)
     is_homed_RBV: bool = attr.field(default=False)
     is_position_reached_RBV: bool = attr.field(default=False)
 
+    # axis description
     axis_number: int = attr.field(default=0) # axis number on the board
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric
     description: str = attr.field(default="TMCM-6214 Axis") # description of the axis
 
     # List of attribute names to be converted into PVs
     pv_attributes: list = [
-        'backlash_direction', 
-        'invert_axis_direction', 
-        'actual_coordinate', 
+        'actual_coordinate_RBV', 
+        'target_coordinate',
+        'negative_user_limit',
+        'positive_user_limit',
+        'stage_motion_limit_RBV',
+        'user_offset',
+        'is_moving_RBV',
+        'is_homed_RBV',
+        'is_position_reached_RBV',
         'short_id']
+
+    def set_actual_coordinate_RBV(self, steps: int):
+        """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
+        self.actual_coordinate_RBV = self.steps_to_real_world(steps) + self.user_offset
+
+    def get_target_coordinate_in_steps(self) -> int:
+        """Retrieves the target coordinate in step units. It first subtracts the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
+        return self.real_world_to_steps(self.target_coordinate - self.user_offset)
+
+    def set_target_coordinate_by_steps(self, steps: int):
+        """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV, it adds the user_offset to the conversion result."""
+        self.target_coordinate = self.steps_to_real_world(steps) + self.user_offset
 
     def steps_to_real_world(self, steps: int) -> pint.Quantity:
         """

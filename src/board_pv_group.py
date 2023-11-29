@@ -13,6 +13,7 @@ ureg = pint.UnitRegistry()
 
 @attr.define
 class BoardPVGroup(PVGroup):
+    """exposes the board and motor control parameters as PVs on the EPICS channel-access bus with actions to control the motors"""
     board_parameters: BoardParameters = attr.field()
     board_control: BoardControl = attr.field()
     sleep_duration: float = attr.field(default=5.0)  # Default sleep duration in seconds

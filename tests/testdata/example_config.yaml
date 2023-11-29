@@ -10,23 +10,22 @@ board:
 axes:
   - axis_number: 0
     configurable_parameters:
-      1: 1000
-      2: 2000
+      6: 80 # motor current, with 255 being 1.9A (see manual)
+      193: 2 # Reference search mode (see manual)
+      194: 100000 # Reference search speed (see manual)
+      195: 300000 # Reference switch speed (see manual), slow speed for determining exact switching point
       # ... other parameters for Axis 0 ...
     backlash_direction: 1
     invert_axis_direction: false
     steps_to_realworld_conversion_quantity: '12345 steps/mm' # 12345 steps = 1 mm (unit defined in base_realworld_unit)
     base_realworld_unit: "mm"
-    backlash: "0.5 mm"
+    backlash: "1 mm"
     invert_limit_values: false
-    actual_coordinate: "0 mm"
-    negative_limit: "-100 mm"
-    positive_limit: "100 mm"
-    user_offset: "0 mm"
-    is_moving_RBV: false
-    is_position_reached_RBV: false
-    short_id: "Axis0"
-    description: "First Axis"
+    user_offset: "75 mm"
+    negative_user_limit: "-75 mm"
+    positive_user_limit: "75 mm"
+    short_id: "ysam"
+    description: "horizontal sample axis"
 
   - axis_number: 1
     # ... configuration for Axis 1 ...
