@@ -142,19 +142,19 @@ class TrinamicMotor(PVGroup):
                        precision=3)
 
     def __init__(self, *args,
+                 board_control:BoardControl,
                  velocity=0.1,
                  precision=3,
                  acceleration=1.0,
                  resolution=1e-6,
                  user_limits=(0.0, 100.0),
                  tick_rate_hz=10.,
-                 boardpar:BoardParameters=None,
                  axis_index:int=0,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self._have_new_position = False
         self.tick_rate_hz = tick_rate_hz
-        self.boardpar = boardpar
+        self.bc = board_control
         self.axis_index = axis_index
         self.defaults = {
             'velocity': velocity,
@@ -164,57 +164,178 @@ class TrinamicMotor(PVGroup):
             'user_limits': user_limits,
         }
         
-
     @motor.startup
     async def motor(self, instance, async_lib):
         # Start the simulator:
         await motor_record(
             self.motor, async_lib, self.defaults,
-            tick_rate_hz=self.tick_rate_hz, board_parameters=self.boardpar, axis_index=self.axis_index
+            tick_rate_hz=self.tick_rate_hz, board_parameters=self.bc, axis_index=self.axis_index
         )
         
 
+class FakeMotor(PVGroup):
+    motor = pvproperty(value=0.0, name='', record='motor',
+                       precision=3)
+
+    def __init__(self, *args,
+                 velocity=0.1,
+                 precision=3,
+                 acceleration=1.0,
+                 resolution=1e-6,
+                 user_limits=(0.0, 100.0),
+                 tick_rate_hz=10.,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self._have_new_position = False
+        self.tick_rate_hz = tick_rate_hz
+        self.defaults = {
+            'velocity': velocity,
+            'precision': precision,
+            'acceleration': acceleration,
+            'resolution': resolution,
+            'user_limits': user_limits,
+        }
+
+    @motor.startup
+    async def motor(self, instance, async_lib):
+        # Start the simulator:
+        await motor_record_simulator(
+            self.motor, async_lib, self.defaults,
+            tick_rate_hz=self.tick_rate_hz,
+        )
+
+async def motor_record_simulator(instance, async_lib, defaults=None,
+                                 tick_rate_hz=10.):
+    """
+    A simple motor record simulator.
+
+    Parameters
+    ----------
+    instance : pvproperty (ChannelDouble)
+        Ensure you set ``record='motor'`` in your pvproperty first.
+
+    async_lib : AsyncLibraryLayer
+
+    defaults : dict, optional
+        Defaults for velocity, precision, acceleration, limits, and resolution.
+
+    tick_rate_hz : float, optional
+        Update rate in Hz.
+    """
+    if defaults is None:
+        defaults = dict(
+            velocity=0.1,
+            precision=3,
+            acceleration=1.0,
+            resolution=1e-6,
+            tick_rate_hz=10.,
+            user_limits=(0.0, 100.0),
+        )
+
+    fields: MotorFields = instance.field_inst
+    have_new_position = False
+
+    async def value_write_hook(fields, value):
+        nonlocal have_new_position
+        # This happens when a user puts to `motor.VAL`
+        # print("New position requested!", value)
+        have_new_position = True
+
+    fields.value_write_hook = value_write_hook
+
+    await instance.write_metadata(precision=defaults['precision'])
+    await broadcast_precision_to_fields(instance)
+
+    await fields.velocity.write(defaults['velocity'])
+    await fields.seconds_to_velocity.write(defaults['acceleration'])
+    await fields.motor_step_size.write(defaults['resolution'])
+    await fields.user_low_limit.write(defaults['user_limits'][0])
+    await fields.user_high_limit.write(defaults['user_limits'][1])
+
+    while True:
+        dwell = 1. / tick_rate_hz
+        target_pos = instance.value
+        diff = (target_pos - fields.user_readback_value.value)
+        # compute the total movement time based an velocity
+        total_time = abs(diff / fields.velocity.value)
+        # compute how many steps, should come up short as there will
+        # be a final write of the return value outside of this call
+        num_steps = int(total_time // dwell)
+        if abs(diff) < 1e-9 and not have_new_position:
+            if fields.stop.value != 0:
+                await fields.stop.write(0)
+            await async_lib.library.sleep(dwell)
+            continue
+
+        if fields.stop.value != 0:
+            await fields.stop.write(0)
+
+        await fields.done_moving_to_value.write(0)
+        await fields.motor_is_moving.write(1)
+
+        readback = fields.user_readback_value.value
+        step_size = diff / num_steps if num_steps > 0 else 0.0
+        resolution = max((fields.motor_step_size.value, 1e-10))
+
+        for _ in range(num_steps):
+            if fields.stop.value != 0:
+                await fields.stop.write(0)
+                await instance.write(readback)
+                break
+            if fields.stop_pause_move_go.value == 'Stop':
+                await instance.write(readback)
+                break
+
+            readback += step_size
+            raw_readback = readback / resolution
+            await fields.user_readback_value.write(readback)
+            await fields.dial_readback_value.write(readback)
+            await fields.raw_readback_value.write(raw_readback)
+            await async_lib.library.sleep(dwell)
+        else:
+            # Only executed if we didn't break
+            await fields.user_readback_value.write(target_pos)
+
+        await fields.motor_is_moving.write(0)
+        await fields.done_moving_to_value.write(1)
+        have_new_position = False
+
+
 
 class TrinamicIOC(PVGroup):
-    """
-    A fake motor IOC, with 3 fake motors.
+    'A main Trinamic IOC with several PVGroups created dynamically (from "dynamic_pvgroups.py" in caproto examples)'
+    shared_value = 5
+    motor1 = SubGroup(FakeMotor, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
 
-    PVs
-    ---
-    mtr1 (motor)
-    mtr2 (motor)
-    mtr3 (motor)
-    """
-    def __init__(self, *args, config_file:Path=None, **kwargs):
+    def __init__(self, *args, groups:dict={}, config_file:Path=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.boardpar = BoardParameters()
         ConfigurationManagement.load_configuration(config_file, self.boardpar)
-        bc = BoardControl(self.boardpar)
+        self.bc = BoardControl(self.boardpar)
+        self.groups = groups
 
-        # self.boardpar.initialize_board()
-        # self.boardpar.initialize_axes()
-        # for axpar in self.boardpar.axes_parameters:
-        #     # self.add_pv_group(MotorAxisPVGroup(axis_parameters=axpar, prefix=axpar.short_id))
-        #     self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=axpar.axis_number, prefix=axpar.short_id))
-        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=0, prefix='mtr0'))
-        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=1, prefix='mtr1'))
-        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=2, prefix='mtr2'))
-        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=3, prefix='mtr3'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=4, prefix='mtr4'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=5, prefix='mtr5'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=6, prefix='mtr6'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=7, prefix='mtr7'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=8, prefix='mtr8'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=9, prefix='mtr9'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=10, prefix='mtr10'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=11, prefix='mtr11'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=12, prefix='mtr12'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=13, prefix='mtr13'))
-        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=14
-        
-
-    motor1 = SubGroup(TrinamicMotor, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
-    motor2 = SubGroup(TrinamicMotor, velocity=2., precision=2, user_limits=(-10, 20), prefix='mtr2')
-    motor3 = SubGroup(TrinamicMotor, velocity=3., precision=2, user_limits=(0, 30), prefix='mtr3')
+    # motor0 = SubGroup(TrinamicMotor, board_control = None, axis_index=0, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
 
 
+# class TrinamicIOC(PVGroup):
+#     """
+#     A fake motor IOC, with 3 fake motors.
+
+#     PVs
+#     ---
+#     mtr1 (motor)
+#     mtr2 (motor)
+#     mtr3 (motor)
+#     """
+
+#     def __init__(self, *args, config_file:Path=None, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.boardpar = BoardParameters()
+#         ConfigurationManagement.load_configuration(config_file, self.boardpar)
+#         self.bc = BoardControl(self.boardpar)
+#         # self.bc.initialize_board()
+
+#         # self.motor0 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=0, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
+#         # self.motor1 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=1, velocity=2., precision=2, user_limits=(-10, 20), prefix='mtr2')
+#         # self.motor2 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=2, velocity=3., precision=2, user_limits=(0, 30), prefix='mtr3')
+    

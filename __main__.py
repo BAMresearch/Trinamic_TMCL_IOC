@@ -13,7 +13,7 @@ from caproto.server import PVGroup, SubGroup, ioc_arg_parser, pvproperty, run, t
 # from src.axis_parameters import AxisParameters
 # from src.board_parameters import BoardParameters
 from src.__init__ import ureg
-from src.board_pv_group import TrinamicIOC
+from src.board_pv_group import TrinamicIOC, TrinamicMotor
 
 # This should contain the script that you want to run when the package is executed
 
@@ -23,6 +23,34 @@ def validate_file(arg):
         raise FileNotFoundError(f"File {path} does not exist.")
     return path
 
+def create_ioc(config_file:Path, **ioc_options):
+    groups = {}
+    # like IOCMain
+    ioc = TrinamicIOC(groups=groups, config_file=config_file, **ioc_options)
+
+    for axpar in ioc.bc.boardpar.axes_parameters:
+        # self.bc.initialize_axis(axpar.axis_number) # this will be done by the individual axes
+        # groups[f'motor{axpar.axis_number}'] = SubGroup(
+        #         TrinamicMotor, 
+        groups[f'motor{axpar.axis_number}'] = TrinamicMotor( # hopefully this creates a subgroup
+                board_control = ioc.bc, 
+                axis_index=axpar.axis_number, 
+                velocity=1., # not used, set as axis configurable parameter
+                precision=3, # not used. 
+                user_limits=(
+                    axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude, 
+                    axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude
+                    ), # these should be converted to axpar.base_realworld_unit
+                prefix=f'{axpar.short_id}',
+                ioc=ioc
+                )
+
+
+    for group in groups.values():
+        ioc.pvdb.update(**group.pvdb)
+
+    return ioc
+
 if __name__ == '__main__':
     parser, split_args = template_arg_parser(
     # ioc_options, run_options = ioc_arg_parser(
@@ -31,7 +59,6 @@ if __name__ == '__main__':
         supported_async_libs=('asyncio',)
         )
     parser.add_argument('--configfile', help='Path to the board- and axes YAML configuration file', required=True, type=validate_file)
-    
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
 
