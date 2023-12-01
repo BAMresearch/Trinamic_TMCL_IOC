@@ -19,7 +19,7 @@ class BoardControl:
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
             for key, value in self.boardpar.board_configurable_parameters.items():
-                self.module.set_global_parameter(key, value)
+                self.module.set_global_parameter(key, 0, value)
     
     def initialize_axis(self, axis_index:int):
         with self.connection_manager.connect() as myInterface:
