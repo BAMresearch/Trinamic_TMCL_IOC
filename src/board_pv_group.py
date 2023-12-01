@@ -7,10 +7,14 @@
 # python /usr/bpauw/Code/Trinamic_TMCM6214_TMCL_IOC --list-pvs -v 
 # once I have the main code in place.
 
+from pathlib import Path
 from textwrap import dedent
 
 from caproto.server import PVGroup, SubGroup, ioc_arg_parser, pvproperty, run
 from caproto.server.records import MotorFields
+from src.board_control import BoardControl
+
+from src.configuration_management import ConfigurationManagement
 from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
 from .__init__ import ureg
@@ -181,6 +185,33 @@ class TrinamicIOC(PVGroup):
     mtr2 (motor)
     mtr3 (motor)
     """
+    def __init__(self, *args, config_file:Path=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.boardpar = BoardParameters()
+        ConfigurationManagement.load_configuration(config_file, self.boardpar)
+        bc = BoardControl(self.boardpar)
+
+        # self.boardpar.initialize_board()
+        # self.boardpar.initialize_axes()
+        # for axpar in self.boardpar.axes_parameters:
+        #     # self.add_pv_group(MotorAxisPVGroup(axis_parameters=axpar, prefix=axpar.short_id))
+        #     self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=axpar.axis_number, prefix=axpar.short_id))
+        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=0, prefix='mtr0'))
+        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=1, prefix='mtr1'))
+        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=2, prefix='mtr2'))
+        # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=3, prefix='mtr3'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=4, prefix='mtr4'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=5, prefix='mtr5'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=6, prefix='mtr6'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=7, prefix='mtr7'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=8, prefix='mtr8'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=9, prefix='mtr9'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=10, prefix='mtr10'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=11, prefix='mtr11'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=12, prefix='mtr12'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=13, prefix='mtr13'))
+        # # self.add_pv_group(TrinamicMotor(boardpar=self.boardpar, axis_index=14
+        
 
     motor1 = SubGroup(TrinamicMotor, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
     motor2 = SubGroup(TrinamicMotor, velocity=2., precision=2, user_limits=(-10, 20), prefix='mtr2')
