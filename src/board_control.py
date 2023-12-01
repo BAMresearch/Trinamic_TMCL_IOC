@@ -19,14 +19,16 @@ class BoardControl:
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
             for key, value in self.boardpar.board_configurable_parameters.items():
-                self.module.set_global_parameter(key, 0, value)
+                print(f"setting board {key=} {value=}")
+                self.module.set_global_parameter(key, 0, value) # these are automatically stored
     
     def initialize_axis(self, axis_index:int):
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             axpar=self.boardpar.axes_parameters[axis_index]
             for key, value in axpar.configurable_parameters.items():
-                self.module.set_axis_parameter(axis_index, key, value)
+                print(f"setting {axis_index=} {key=} {value=}")
+                self.module.set_axis_parameter(key, axis_index, value)
 
     def initialize_axes(self):
         for axpar in self.boardpar.axes_parameters:
@@ -35,22 +37,23 @@ class BoardControl:
     def get_end_switch_distance(self, axis_index:int):
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            return self.module.get_axis_parameter(axis_index, self.module.AP.RightLimitSwitchPosition) # limit switch distance in steps. 
+            return self.module.get_axis_parameter(self.module.motors[axis_index].AP.RightLimitSwitchPosition, axis_index) # limit switch distance in steps. 
 
     def home_axis(self, axis_index:int):     
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            self.module.reference_search(0, axis_index, self.module_id)
+            # self.module.reference_search(0, axis_index, self.boardpar.board_module_id)
+            myInterface.reference_search(0, axis_index, self.boardpar.board_module_id)
     
     def check_if_moving(self, axis_index:int):
         self.update_axis_parameters(axis_index)
-        return bool((not self.axis_parameters[axis_index].is_position_reached_RBV) and (self.axis_parameters[axis_index].is_moving_RBV))
+        return bool((not self.boardpar.axes_parameters[axis_index].is_position_reached_RBV) and (self.boardpar.axes_parameters[axis_index].is_moving_RBV))
 
     def await_move_completion(self, axis_index:int):
         self.update_axis_parameters(axis_index)
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
         while doublecheck < 2:
-            doublecheck += int(self.check_if_moving(axis_index))
+            doublecheck += int(not(self.check_if_moving(axis_index)))
             time.sleep(0.5)
             
     def stop_axis(self, axis:int):
@@ -63,7 +66,7 @@ class BoardControl:
         Returns: None
         """
         with self.connection_manager.connect() as myInterface:
-            myInterface.stop(axis, self.module_id)
+            myInterface.stop(axis, self.boardpar.board_module_id)
     
     def stop_all(self):
         """
@@ -86,7 +89,7 @@ class BoardControl:
         Returns: None
         """
         with self.connection_manager.connect() as myInterface:
-            myInterface.move_to(axis_index, position_steps, self.module_id)
+            myInterface.move_to(axis_index, position_steps, self.boardpar.board_module_id)
 
     def update_axis_parameters(self, axis_index:int):
         axpars=self.boardpar.axes_parameters[axis_index]
@@ -94,7 +97,7 @@ class BoardControl:
             module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
             axis = module.motors[axis_index]
 
-            axpars.set_actual_coordinate_RBV(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
+            axpars.set_actual_coordinate_RBV_by_steps(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
             axpars.set_target_coordinate_by_steps(int(axis.get_axis_parameter(axis.AP.TargetPosition)))            
 
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)

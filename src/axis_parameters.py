@@ -9,7 +9,15 @@ def validate_backlash_direction(instance, attribute, value):
 
 def validate_quantity(instance, attribute, value):
     if not isinstance(value, pint.Quantity):
-        raise TypeError("steps_to_realworld must be a pint.Quantity")
+        raise TypeError("this value must be a pint.Quantity")
+    
+def quantity_converter(input_value):
+    if isinstance(input_value, str):
+        return ureg.Quantity(input_value)
+    elif isinstance(input_value, ureg.Quantity):
+        return input_value
+    else:
+        raise TypeError('Value must be either a string that can be interpreted as a Quantity or a Quantity already')
 
 def validate_user_limits(instance, attribute, value):
     # Adjusted limits considering the user offset
@@ -28,22 +36,22 @@ class AxisParameters:
     invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
     # Custom unit conversion factor (e.g., steps to mm or steps to radians)
     steps_to_realworld_conversion_quantity: pint.Quantity = attr.field(
-        default='1 steps/mm', validator=validate_quantity, converter=ureg)
+        default='1 steps/mm', validator=validate_quantity, converter=quantity_converter)
 
     # Base unit for real-world measurements (e.g., mm for linear axes, radian for rotational axes)
     base_realworld_unit: pint.Unit = attr.field(default=ureg.mm, converter=ureg.Unit)
     
-    backlash: pint.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=ureg)
+    backlash: pint.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
 
     invert_limit_values: bool = attr.field(default=False)
-    actual_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
-    target_coordinate: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=ureg)
+    actual_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    target_coordinate: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.
-    stage_motion_limit_RBV: pint.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=ureg)
+    stage_motion_limit_RBV: pint.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=quantity_converter)
     # user limits must always lie within the stage motion limits. It is validated for that when set. They are used in the motor motions to ensure that the motor does not move beyond the stage motion limits.
-    user_offset: pint.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=ureg)
-    negative_user_limit: pint.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=ureg)
-    positive_user_limit: pint.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=ureg)
+    user_offset: pint.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=quantity_converter)
+    negative_user_limit: pint.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
+    positive_user_limit: pint.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
 
     # some flags to indicate the state of the axis
     is_moving_RBV: bool = attr.field(default=False)
@@ -68,17 +76,17 @@ class AxisParameters:
         'is_position_reached_RBV',
         'short_id']
 
-    def set_actual_coordinate_RBV(self, steps: int):
+    def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
-        self.actual_coordinate_RBV = self.steps_to_real_world(steps) + self.user_offset
+        self.actual_coordinate_RBV = self.steps_to_real_world(steps) - self.user_offset
 
-    def get_target_coordinate_in_steps(self) -> int:
-        """Retrieves the target coordinate in step units. It first subtracts the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
-        return self.real_world_to_steps(self.target_coordinate - self.user_offset)
+    def get_target_coordinate_in_steps(self, target_coordinate:ureg.Quantity) -> int:
+        """Calculates the target coordinate in step units. It first adds the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
+        return self.real_world_to_steps(target_coordinate + self.user_offset)
 
     def set_target_coordinate_by_steps(self, steps: int):
-        """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV, it adds the user_offset to the conversion result."""
-        self.target_coordinate = self.steps_to_real_world(steps) + self.user_offset
+        """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV_by_steps, it subtracts the user_offset to the conversion result."""
+        self.target_coordinate = self.steps_to_real_world(steps) - self.user_offset
 
     def steps_to_real_world(self, steps: int) -> pint.Quantity:
         """

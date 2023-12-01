@@ -2,7 +2,7 @@
 # Example: Import key classes for easy access
 
 import pint
-ureg = pint.UnitRegistry(auto_reduce_dimensions=True)
+ureg = pint.UnitRegistry() # auto_reduce_dimensions=True
 ureg.define('step = 1 * count = steps')
 # Initialize logging
 import logging

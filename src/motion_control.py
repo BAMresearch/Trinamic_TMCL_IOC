@@ -74,11 +74,10 @@ class MotionControl:
             raise ValueError("Target position is outside of the axis user motion limits.")
 
         # Apply backlash correction if needed
+        adjusted_backlashed_target = adjusted_target
         backlash_needed = axis_params.backlash_direction * (adjusted_target - axis_params.actual_coordinate_RBV).magnitude > 0
         if backlash_needed:
             adjusted_backlashed_target += axis_params.backlash * axis_params.backlash_direction
-        else:
-            adjusted_backlashed_target = adjusted_target
 
         # Perform the movement
         steps = axis_params.get_target_coordinate_in_steps(adjusted_backlashed_target)
