@@ -13,7 +13,7 @@ from textwrap import dedent
 from caproto.server import PVGroup, SubGroup, ioc_arg_parser, pvproperty, run
 from caproto.server.records import MotorFields
 from src.board_control import BoardControl
-
+from src.motion_control import MotionControl
 from src.configuration_management import ConfigurationManagement
 from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
@@ -40,7 +40,7 @@ async def broadcast_precision_to_fields(record):
 
 
 async def motor_record(instance, async_lib, defaults=None,
-                                 tick_rate_hz=10., board_parameters:BoardParameters=None, axis_index:int=0):
+                                 tick_rate_hz=10., motion_control:MotionControl=None, axis_index:int=0):
     """
     A simple motor record.
 
@@ -66,6 +66,7 @@ async def motor_record(instance, async_lib, defaults=None,
             tick_rate_hz=10.,
             user_limits=(0.0, 100.0),
         )
+    board_parameters=motion_control.board_control.boardpar
     axpar = board_parameters.axes_parameters[axis_index]
 
     fields: MotorFields = instance.field_inst
@@ -74,7 +75,7 @@ async def motor_record(instance, async_lib, defaults=None,
     async def value_write_hook(fields, value):
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
-        print("New position requested!", value)
+        print(f"New position {value} requested on axis {axis_index} ", value)
         have_new_position = True
 
     fields.value_write_hook = value_write_hook
@@ -142,7 +143,7 @@ class TrinamicMotor(PVGroup):
                        precision=3)
 
     def __init__(self, *args,
-                 board_control:BoardControl,
+                 motion_control:MotionControl,
                  velocity=0.1,
                  precision=3,
                  acceleration=1.0,
@@ -154,7 +155,8 @@ class TrinamicMotor(PVGroup):
         super().__init__(*args, **kwargs)
         self._have_new_position = False
         self.tick_rate_hz = tick_rate_hz
-        self.bc = board_control
+        self.mc = motion_control
+        self.bc = motion_control.board_control
         self.axis_index = axis_index
         self.defaults = {
             'velocity': velocity,
@@ -163,46 +165,26 @@ class TrinamicMotor(PVGroup):
             'resolution': resolution,
             'user_limits': user_limits,
         }
+        axpar = self.bc.boardpar.axes_parameters[self.axis_index]
+        self.defaults['user_limits']=(
+            axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude, 
+            axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude
+        )
         
     @motor.startup
     async def motor(self, instance, async_lib):
+        print(f'Initializing axis {self.axis_index}')
+        # TODO: uncomment when we're done dev'ing
+        # self.bc.initialize_axis(self.axis_index)
         # Start the simulator:
         await motor_record(
             self.motor, async_lib, self.defaults,
-            tick_rate_hz=self.tick_rate_hz, board_parameters=self.bc, axis_index=self.axis_index
+            tick_rate_hz=self.tick_rate_hz, 
+            motion_control=self.mc, 
+            axis_index=self.axis_index
         )
         
-
-class FakeMotor(PVGroup):
-    motor = pvproperty(value=0.0, name='', record='motor',
-                       precision=3)
-
-    def __init__(self, *args,
-                 velocity=0.1,
-                 precision=3,
-                 acceleration=1.0,
-                 resolution=1e-6,
-                 user_limits=(0.0, 100.0),
-                 tick_rate_hz=10.,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
-        self._have_new_position = False
-        self.tick_rate_hz = tick_rate_hz
-        self.defaults = {
-            'velocity': velocity,
-            'precision': precision,
-            'acceleration': acceleration,
-            'resolution': resolution,
-            'user_limits': user_limits,
-        }
-
-    @motor.startup
-    async def motor(self, instance, async_lib):
-        # Start the simulator:
-        await motor_record_simulator(
-            self.motor, async_lib, self.defaults,
-            tick_rate_hz=self.tick_rate_hz,
-        )
+    
 
 async def motor_record_simulator(instance, async_lib, defaults=None,
                                  tick_rate_hz=10.):
@@ -238,7 +220,6 @@ async def motor_record_simulator(instance, async_lib, defaults=None,
     async def value_write_hook(fields, value):
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
-        # print("New position requested!", value)
         have_new_position = True
 
     fields.value_write_hook = value_write_hook
@@ -305,37 +286,28 @@ async def motor_record_simulator(instance, async_lib, defaults=None,
 class TrinamicIOC(PVGroup):
     'A main Trinamic IOC with several PVGroups created dynamically (from "dynamic_pvgroups.py" in caproto examples)'
     shared_value = 5
-    motor1 = SubGroup(FakeMotor, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
+
+    motor1 = None
+    # motor1 = SubGroup(FakeMotor, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
 
     def __init__(self, *args, groups:dict={}, config_file:Path=None, **kwargs):
+        # this does execute...
+
         super().__init__(*args, **kwargs)
         self.boardpar = BoardParameters()
         ConfigurationManagement.load_configuration(config_file, self.boardpar)
-        self.bc = BoardControl(self.boardpar)
+        self.bc = BoardControl(self.boardpar) # low-level comm
+        self.mc = MotionControl(self.bc) # high-level motions
         self.groups = groups
+        print(f'{len(self.bc.boardpar.axes_parameters)=}')
+        for ax_id, axpar in enumerate(self.bc.boardpar.axes_parameters):
+            axpar = self.bc.boardpar.axes_parameters[ax_id]
+            setattr(self, f'motor{ax_id}', TrinamicMotor( # hopefully this creates a subgroup
+                    motion_control= self.mc, 
+                    axis_index=axpar.axis_number, 
+                    prefix=f'{self.prefix}{axpar.short_id}',
+                    )
+            )
+            self.pvdb.update(**getattr(self, f'motor{ax_id}').pvdb)
 
     # motor0 = SubGroup(TrinamicMotor, board_control = None, axis_index=0, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
-
-
-# class TrinamicIOC(PVGroup):
-#     """
-#     A fake motor IOC, with 3 fake motors.
-
-#     PVs
-#     ---
-#     mtr1 (motor)
-#     mtr2 (motor)
-#     mtr3 (motor)
-#     """
-
-#     def __init__(self, *args, config_file:Path=None, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.boardpar = BoardParameters()
-#         ConfigurationManagement.load_configuration(config_file, self.boardpar)
-#         self.bc = BoardControl(self.boardpar)
-#         # self.bc.initialize_board()
-
-#         # self.motor0 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=0, velocity=1., precision=3, user_limits=(0, 10), prefix='mtr1')
-#         # self.motor1 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=1, velocity=2., precision=2, user_limits=(-10, 20), prefix='mtr2')
-#         # self.motor2 = SubGroup(TrinamicMotor, board_control = self.bc, axis_index=2, velocity=3., precision=2, user_limits=(0, 30), prefix='mtr3')
-    

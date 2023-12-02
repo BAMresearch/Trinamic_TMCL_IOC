@@ -1,5 +1,6 @@
 import yaml
 import attr
+from src.axis_parameters import AxisParameters
 from src.board_parameters import BoardParameters
 from typing import Any
 
@@ -16,7 +17,7 @@ class ConfigurationManagement:
             config = yaml.safe_load(file)
 
         ConfigurationManagement._update_board_parameters(config.get('board', {}), board_parameters)
-        ConfigurationManagement._update_axis_parameters(config.get('axes', []), board_parameters)
+        ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
 
     @staticmethod
     def _update_board_parameters(board_config, board_parameters):
@@ -25,16 +26,18 @@ class ConfigurationManagement:
                 setattr(board_parameters, key, value)
 
     @staticmethod
-    def _update_axis_parameters(axes_config, board_parameters):
+    def _update_axes_parameters(axes_config, board_parameters):
         for axis_config in axes_config:
-            axis_number = axis_config.get('axis_number')
+            axis_number = axis_config.get('axis_number') 
+            if (axis_number is not None) and (axis_number >= 0) and len(board_parameters.axes_parameters) < (axis_number+1): # axis_number can start at 0
+                board_parameters.axes_parameters += [AxisParameters()]
             if axis_number is not None and 0 <= axis_number < len(board_parameters.axes_parameters):
-                ConfigurationManagement._update_single_axis_parameters(axis_config, board_parameters.axes_parameters[axis_number])
+                ConfigurationManagement._update_axis_parameters(axis_config, board_parameters.axes_parameters[axis_number])
 
     @staticmethod
-    def _update_single_axis_parameters(axis_config, axis_parameters):
+    def _update_axis_parameters(axis_config, axis_parameters):
         for key, value in axis_config.items():
-            if key != 'axis_number' and hasattr(axis_parameters, key):
+            if hasattr(axis_parameters, key):
                 setattr(axis_parameters, key, value)
                 
     @staticmethod
