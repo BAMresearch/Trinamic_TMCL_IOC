@@ -57,7 +57,11 @@ class AxisParameters:
     is_moving_RBV: bool = attr.field(default=False)
     is_homed_RBV: bool = attr.field(default=False)
     is_position_reached_RBV: bool = attr.field(default=False)
-
+    
+    # internal states:    
+    is_move_interrupted: bool = attr.field(default=False) # this flag is set when the motion is interrupted by a limit switch or a stop command. It is reset when the motion is restarted.
+    update_interval_nonmoving: float = attr.field(default=5.0) # interval in seconds to update the axis parameters from the board. This is increased during a move to 0.1s. 
+    update_interval_moving: float = attr.field(default=0.1) # interval in seconds to update the axis parameters from the board. This is increased during a move to 0.1s.
     # axis description
     axis_number: int = attr.field(default=0) # axis number on the board
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric

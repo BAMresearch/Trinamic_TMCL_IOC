@@ -1,3 +1,6 @@
+import asyncio
+import logging
+from typing import Union
 from src.axis_parameters import AxisParameters
 from src.board_parameters import BoardParameters
 import pytrinamic
@@ -6,6 +9,7 @@ from pytrinamic.modules import TMCM6214
 import time
 from . import pint
 from . import ureg
+from caproto.server.records import MotorFields
 
 class BoardControl:
     """low-level commands to communicate with the board, addressing basic board funccionalities"""
@@ -49,12 +53,30 @@ class BoardControl:
         self.update_axis_parameters(axis_index)
         return bool((not self.boardpar.axes_parameters[axis_index].is_position_reached_RBV) and (self.boardpar.axes_parameters[axis_index].is_moving_RBV))
 
-    def await_move_completion(self, axis_index:int):
+    async def await_move_completion(self, axis_index:int, EPICS_fields:Union[MotorFields, None]=None):
         self.update_axis_parameters(axis_index)
+        axpar = self.boardpar.axes_parameters[axis_index]
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
         while doublecheck < 2:
             doublecheck += int(not(self.check_if_moving(axis_index)))
-            time.sleep(0.5)
+            asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
+            self.update_axis_parameters(axis_index)
+            if EPICS_fields is not None:
+                await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+                await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
+                await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
+                if EPICS_fields.stop.value == 1 or EPICS_fields.stop_pause_move_go.value == 'Stop':
+                    self.stop_axis(axis_index)
+                    await EPICS_fields.stop.write(0)
+                    axpar.is_move_interrupted = True
+                    logging.warning("Motion interrupted by stop command.")
+                    break
+            if axpar.is_move_interrupted:
+                self.stop_axis(axis_index) # stop the motor motion immediately
+                logging.warning("Motion interrupted by limit switch or stop command.")
+                break
+        # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
+        await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):
         """
