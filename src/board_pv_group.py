@@ -18,6 +18,7 @@ from src.configuration_management import ConfigurationManagement
 from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
 from .__init__ import ureg
+import logging
 
 # class MotorAxisPVGroup(PVGroup):
 #     def __init__(self, *args, axis_parameters: AxisParameters, **kwargs):
@@ -125,12 +126,12 @@ async def motor_record(instance, async_lib, defaults=None,
         # kickoff the move:
         await motion_control.kickoff_move_to_coordinate(axis_index, target_pos, absolute_or_relative='absolute')
         # now we await completion
-        await motion_control.board_control.await_move_completion(axis_index, fields)
+        await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
         # backlash if we must
         await motion_control.apply_optional_backlash_move(axis_index, target_pos, absolute_or_relative='absolute')
         # now we await completion again
-        await motion_control.board_control.await_move_completion(axis_index, fields)
+        await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
 
         # for _ in range(num_steps):

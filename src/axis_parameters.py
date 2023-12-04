@@ -2,6 +2,7 @@ import attr
 from typing import Dict
 from .__init__ import ureg
 from .__init__ import pint
+import logging 
 
 def validate_backlash_direction(instance, attribute, value):
     if value not in [-1, 1]:
