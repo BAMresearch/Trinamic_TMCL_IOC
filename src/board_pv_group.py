@@ -97,10 +97,10 @@ async def motor_record(instance, async_lib, defaults=None,
         diff = (target_pos - axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         motion_control.board_control.update_axis_parameters(axis_index)
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
-            fields.stop_pause_move_go.write('Stop')
+            await fields.stop_pause_move_go.write('Stop')
             if fields.stop.value != 0:
                 fields.stop.write(0)
-            fields.motor_is_moving.write(0)
+            await fields.motor_is_moving.write(0)
             await async_lib.library.sleep(axpar.update_interval_nonmoving)
             motion_control.board_control.update_axis_parameters(axis_index)
             continue
@@ -115,7 +115,7 @@ async def motor_record(instance, async_lib, defaults=None,
         await fields.done_moving_to_value.write(0)
         await fields.motor_is_moving.write(1)
         readback = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude
-        fields.user_readback_value.value = readback
+        await fields.user_readback_value.write(readback)
         # kickoff the move:
         await motion_control.kickoff_move_to_coordinate(axis_index, target_pos, absolute_or_relative='absolute')
         # now we await completion
