@@ -28,8 +28,8 @@ axes:
     backlash: "1 mm"
     invert_limit_values: false # invert limit values before presenting them to the user (true or false)
     user_offset: "50 mm" # offset to be added to the motor position (which is always between 0 and stage_motion_limit_RBV) to translate to user coordinates
-    negative_user_limit: "-50 mm" # negative user coordinate limit
-    positive_user_limit: "50 mm" # positive user coordinate limit
+    negative_user_limit: "-51 mm" # negative user coordinate limit
+    positive_user_limit: "51 mm" # positive user coordinate limit
     short_id: "ysam" # short identifier for the axis, e.g. "x", "y", "z", "theta", "phi", "psi"
     description: "horizontal sample stage axis" # description of the axis
   # - axis_number: 1
