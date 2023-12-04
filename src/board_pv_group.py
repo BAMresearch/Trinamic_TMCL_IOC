@@ -104,6 +104,7 @@ async def motor_record(instance, async_lib, defaults=None,
             await fields.motor_is_moving.write(0)
             await async_lib.library.sleep(axpar.update_interval_nonmoving)
             await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+            axpar.target_coordinate = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit) # this is the target position in real-world units
             await fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             await fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
             await fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
