@@ -59,7 +59,7 @@ class BoardControl:
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
         while doublecheck < 2:
             doublecheck += int(not(self.check_if_moving(axis_index)))
-            asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
+            await asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
             self.update_axis_parameters(axis_index)
             if EPICS_fields is not None:
                 await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
