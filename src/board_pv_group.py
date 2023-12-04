@@ -189,7 +189,7 @@ class TrinamicMotor(PVGroup):
         # TODO: uncomment when we're done dev'ing
         self.bc.initialize_axis(self.axis_index)
         # home the axis 
-        self.mc.home_await_and_set_limits(self.axis_index)
+        await self.mc.home_await_and_set_limits(self.axis_index)
         # Start the simulator:
         await motor_record(
             self.motor, async_lib, self.defaults,
