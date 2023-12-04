@@ -76,7 +76,8 @@ class BoardControl:
                 logging.warning("Motion interrupted by limit switch or stop command.")
                 break
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
-        await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+        if EPICS_fields is not None:
+            await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):
         """
