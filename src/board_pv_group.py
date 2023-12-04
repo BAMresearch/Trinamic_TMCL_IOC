@@ -110,7 +110,7 @@ async def motor_record(instance, async_lib, defaults=None,
             await fields.stop.write(0) # reset the stop flag
 
         motion_control.board_control.update_axis_parameters(axis_index)
-        axpar.target_coordinate=ureg(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
+        axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
         await fields.dial_desired_value.write((axpar.target_coordinate+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
         await fields.done_moving_to_value.write(0)
         await fields.motor_is_moving.write(1)
