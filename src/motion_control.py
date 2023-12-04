@@ -2,6 +2,7 @@ from typing import Union
 from .board_control import BoardControl
 from .axis_parameters import AxisParameters, quantity_converter
 from .__init__ import ureg
+import logging
 
 class MotionControl:
     """high-level interface for controlling motion of the motors"""
@@ -12,8 +13,9 @@ class MotionControl:
         """ checks if the move was interrupted by a limit switch or a stop command. """
         if self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted:
             self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted = False
-            raise ValueError("Motion was interrupted by a limit switch or a stop command.")
-        
+            logging.error("Motion was interrupted by a limit switch or a stop command.")
+            
+
     async def home_await_and_set_limits(self, axis_index: int):
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
         # indicate the stage is not homed.
@@ -39,11 +41,11 @@ class MotionControl:
 
         # ensure that the axis is homed before moving
         if not axis_params.is_homed_RBV:
-            raise ValueError("Axis must be homed before moving.")
+            logging.error("Axis must be homed before moving.")
 
         # ensure that the axis is not moving before moving
         if axis_params.is_moving_RBV:
-            raise ValueError("Axis must be stopped before moving.")
+            logging.error("Axis must be stopped before moving.")
 
     def _calculate_adjusted_target(self, axis_params: AxisParameters, target_coordinate: ureg.Quantity, absolute_or_relative: str = 'absolute') -> ureg.Quantity:
         # if not isinstance(target_coordinate, ureg.Quantity):
@@ -54,7 +56,7 @@ class MotionControl:
         elif absolute_or_relative == 'relative':
             adjusted_target = axis_params.actual_coordinate_RBV + target_coordinate
         else:
-            raise ValueError("absolute_or_relative must be 'absolute' or 'relative'.")
+            logging.error("absolute_or_relative must be 'absolute' or 'relative'.")
         return adjusted_target
 
     async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute'):
@@ -84,7 +86,7 @@ class MotionControl:
 
         # Check motion limits, taking bidirectional backlash into account
         if not ((axis_params.negative_user_limit + axis_params.backlash) <= adjusted_target <= (axis_params.positive_user_limit - axis_params.backlash)):
-            raise ValueError("Target position is outside of the axis user motion limits.")
+            logging.error(f"Target position {adjusted_target} is outside of the axis user motion limits: {(axis_params.negative_user_limit + axis_params.backlash)}, {(axis_params.positive_user_limit - axis_params.backlash)}")
 
         # Apply backlash correction if needed
         backlash_needed, adjusted_backlashed_target = self.is_backlash_needed(axis_params, adjusted_target)

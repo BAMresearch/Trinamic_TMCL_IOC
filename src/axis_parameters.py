@@ -25,7 +25,7 @@ def validate_user_limits(instance, attribute, value):
     adjusted_positive_limit = instance.positive_user_limit + instance.user_offset
 
     if (adjusted_negative_limit < 0) or (adjusted_positive_limit > instance.stage_motion_limit_RBV):
-        raise ValueError(f"User limits must not exceed the stage motion limits after considering the user offset")
+        logging.error(f"User limits must not exceed the stage motion limits after considering the user offset")
 
 @attr.define
 class AxisParameters:
@@ -102,7 +102,7 @@ class AxisParameters:
         result = ureg.Quantity(steps, 'steps') / self.steps_to_realworld_conversion_quantity # * self.base_realworld_unit
         # check if the result is compatible with the base unit
         if not result.is_compatible_with(self.base_realworld_unit):
-            raise ValueError(f"Conversion of {steps} steps to real-world units failed. Problem in conversion quantity or base realworld unit.")
+            logging.error(f"Conversion of {steps} steps to real-world units failed. Problem in conversion quantity or base realworld unit.")
         return result
 
     def real_world_to_steps(self, distance_or_angle: pint.Quantity) -> int:
@@ -115,5 +115,5 @@ class AxisParameters:
         result = (distance_or_angle * (self.steps_to_realworld_conversion_quantity)).to('steps')
         # check if the result is compatible with the base unit
         if not result.is_compatible_with('steps'):
-            raise ValueError(f"Conversion of {distance_or_angle} to steps failed. Problem in conversion quantity or base realworld unit.")
+            logging.error(f"Conversion of {distance_or_angle} to steps failed. Problem in conversion quantity or base realworld unit.")
         return int(result.magnitude)
