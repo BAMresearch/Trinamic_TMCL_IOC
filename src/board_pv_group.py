@@ -97,7 +97,7 @@ async def motor_record(instance, async_lib, defaults=None,
         diff = (target_pos - axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         motion_control.board_control.update_axis_parameters(axis_index)
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
-            fields.stop_pause_move_go.value = 'Stop'
+            fields.stop_pause_move_go.write('Stop')
             if fields.stop.value != 0:
                 fields.stop.write(0)
             fields.motor_is_moving.write(0)

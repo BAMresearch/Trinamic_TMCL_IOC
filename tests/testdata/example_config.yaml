@@ -1,7 +1,7 @@
 board:
   ip_address: "192.168.0.253"
   port_number: 4016
-  board_module_id: 0
+  board_module_id: 1
   board_configurable_parameters:
     84: 1 # coordinates are always stored in eeprom
     85: 0 # 0=restore user variables automatically on startup
