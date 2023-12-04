@@ -104,8 +104,8 @@ async def motor_record(instance, async_lib, defaults=None,
                 fields.stop.write(0)
             await fields.motor_is_moving.write(0)
             await async_lib.library.sleep(axpar.update_interval_nonmoving)
-            # weirdness check 2
-            # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+            # weirdness check 4
+            await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             # axpar.target_coordinate = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit) # this is the target position in real-world units
             await fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             await fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
@@ -113,6 +113,7 @@ async def motor_record(instance, async_lib, defaults=None,
             motion_control.board_control.update_axis_parameters(axis_index)
             continue
 
+        await fields.stop_pause_move_go.write('Go') # SPMG field normally "go"
         # if we are here, we are moving.
         if fields.stop.value != 0:
             await fields.stop.write(0) # reset the stop flag
