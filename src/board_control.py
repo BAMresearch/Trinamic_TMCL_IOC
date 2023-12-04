@@ -61,8 +61,8 @@ class BoardControl:
             doublecheck += int(not(self.check_if_moving(axis_index)))
             await asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
             self.update_axis_parameters(axis_index)
-            if instance is not None: 
-                await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+            # if instance is not None: 
+            #     await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             if EPICS_fields is not None:
                 await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
                 await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
