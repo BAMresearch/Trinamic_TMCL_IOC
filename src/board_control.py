@@ -71,7 +71,7 @@ class BoardControl:
                     self.stop_axis(axis_index)
                     await EPICS_fields.stop.write(0)
                     axpar.is_move_interrupted = True
-                    logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} or {EPICS_fields.stop_pause_move_go.value}.")
+                    logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} and/or {EPICS_fields.stop_pause_move_go.value=}.")
                     break
             if axpar.is_move_interrupted:
                 self.stop_axis(axis_index) # stop the motor motion immediately
