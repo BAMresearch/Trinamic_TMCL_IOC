@@ -68,7 +68,15 @@ async def motor_record(instance, async_lib, defaults=None,
         # This happens when a user puts to `motor.VAL`
         print(f"New position {value} requested on axis {axis_index} ")
         have_new_position = True
-        # TODO: can we actually move directly from here? Looks like no.. 
+        # TODO: can we actually move directly from here? Looks like no.. maybe just the first bit tho?
+        # if we are here, we are moving.
+        motion_control.board_control.update_axis_parameters(axis_index)
+        axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
+        await update_epics_motorfields_instance(axpar, instance, 'moving')
+        
+        print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
+        # kickoff the move:
+        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
 
     fields.value_write_hook = value_write_hook
 
@@ -93,12 +101,14 @@ async def motor_record(instance, async_lib, defaults=None,
 
         # if we are here, we are moving.
         motion_control.board_control.update_axis_parameters(axis_index)
-        axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
+        # axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         
-        print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
-        # kickoff the move:
-        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
+        # print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
+        # # kickoff the move:
+        # await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
+
+        # we should already be moving...
         # now we await completion
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
