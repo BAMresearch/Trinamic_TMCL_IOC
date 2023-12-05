@@ -5,20 +5,21 @@ from .board_control import BoardControl
 from .axis_parameters import AxisParameters, quantity_converter
 from . import ureg
 import logging
+from caproto.server.records import pvproperty
 
 class MotionControl:
     """high-level interface for controlling motion of the motors"""
-    def __init__(self, board_control: BoardControl):
+    def __init__(self, board_control: BoardControl) -> None:
         self.board_control = board_control
 
-    async def check_for_move_interrupt(self, axis_index: int):
+    async def check_for_move_interrupt(self, axis_index: int) -> None:
         """ checks if the move was interrupted by a limit switch or a stop command. """
         if self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted:
             self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted = False
             logging.error("Motion was interrupted by a limit switch or a stop command.")
             
 
-    async def home_await_and_set_limits(self, axis_index: int):
+    async def home_await_and_set_limits(self, axis_index: int) -> None:
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
         # indicate the stage is not homed.
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
@@ -45,7 +46,7 @@ class MotionControl:
         logging.info(f"Axis {axis_index} homing complete.")
         axpar.is_homed_RBV = True # should be finished now. 
 
-    def _prepare_axis_for_motion(self, axis_params: AxisParameters):
+    def _prepare_axis_for_motion(self, axis_params: AxisParameters) -> None:
         # make sure we have an updated state of the axis:
         self.board_control.update_axis_parameters(axis_params.axis_number)
 
@@ -69,7 +70,7 @@ class MotionControl:
             logging.error("absolute_or_relative must be 'absolute' or 'relative'.")
         return adjusted_target
 
-    async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute'):
+    async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute') -> None:
         '''
         Kick off a motion command on the motor stage. This function returns immediately, before the motion is complete. Use await_move_completion to wait for the motion to complete and handle possible movement interrupts.
 
@@ -115,7 +116,7 @@ class MotionControl:
             adjusted_backlashed_target += axis_params.backlash * axis_params.backlash_direction
         return backlash_needed, adjusted_backlashed_target
     
-    async def apply_optional_backlash_move(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute'):
+    async def apply_optional_backlash_move(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute') -> None:
         """
         Apply backlash move if needed. First part is similar to kickoff_move_to_coordinate, but we don't check the motion limits.
         """
@@ -146,8 +147,7 @@ class MotionControl:
             steps = axis_params.real_world_to_steps(adjusted_target + axis_params.user_offset)
             self.board_control.move_axis(axis_index, steps)
 
-
-    async def move_to_coordinate_with_backlash(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute'):
+    async def move_to_coordinate_with_backlash(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute', instance: Union[None, pvproperty] = None) -> None:
         """
         Move a motor axis to a specified position in real space, considering backlash.
 
@@ -160,20 +160,11 @@ class MotionControl:
         # kick-off the move:
         self.kickoff_move_to_coordinate(axis_index_or_name, target_coordinate, absolute_or_relative)
         # wait for the move to complete
-        await self.board_control.await_move_completion(axis_index)
+        await self.board_control.await_move_completion(axis_index, instance)
         await self.check_for_move_interrupt(axis_index)
         await self.apply_optional_backlash_move(axis_index_or_name, target_coordinate, absolute_or_relative)
+        await self.board_control.await_move_completion(axis_index, instance)
         await self.check_for_move_interrupt(axis_index)
-        # backlash_needed, adjusted_target = self.is_backlash_needed(axis_params, adjusted_target)
-        # # apply backlash move if needed
-        # if backlash_needed:
-        #     steps = axis_params.get_target_coordinate_in_steps(adjusted_target)
-        #     self.board_control.move_axis(axis_index, steps)
-        #     await self.board_control.await_move_completion(axis_index)
-        #     await self.check_for_move_interrupt(axis_index)
-
-        # # Update AxisParameters after the move
-        # self.board_control.update_axis_parameters(axis_index)
 
     def _resolve_axis_index(self, axis: Union[int, str]) -> int:
         if isinstance(axis, str):
@@ -186,9 +177,5 @@ class MotionControl:
             return axis
         else:
             raise TypeError("Axis must be an int or str")
-
-    async def home_and_wait(self, axis_index: int):
-        # Implement logic to home the axis and wait until motion is complete
-        pass
 
     # Additional advanced motion control methods

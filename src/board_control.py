@@ -90,7 +90,7 @@ class BoardControl:
         self.update_axis_parameters(axis_index)
         return bool((not self.boardpar.axes_parameters[axis_index].is_position_reached_RBV) and (self.boardpar.axes_parameters[axis_index].is_moving_RBV))
 
-    async def await_move_completion(self, axis_index:int, EPICS_fields:Union[MotorFields, None]=None, instance:Union[pvproperty, None]=None) -> None:
+    async def await_move_completion(self, axis_index:int, instance:Union[pvproperty, None]=None) -> None:
         """
         Waits until the motor on the given axis has completed its motion. Updates the axis parameters and the EPICS fields.
         """
@@ -98,6 +98,9 @@ class BoardControl:
         self.update_axis_parameters(axis_index)
         axpar = self.boardpar.axes_parameters[axis_index]
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
+        if instance is not None:
+            EPICS_fields: MotorFields = instance.field_inst
+
         while doublecheck < 2:
             doublecheck += int(not(self.check_if_moving(axis_index)))
             await asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
@@ -105,7 +108,7 @@ class BoardControl:
             # weirdness 6; not sure I should be continually writing this
             # if instance is not None: 
             #     await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
-            if EPICS_fields is not None:
+            if instance is not None:
                 # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
                 # await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
                 # await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
@@ -115,15 +118,15 @@ class BoardControl:
                     axpar.is_move_interrupted = True
                     logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} and/or {EPICS_fields.stop_pause_move_go.value=}.")
                     break
-                await update_epics_motorfields_instance(axpar, EPICS_fields, moving_or_nonmoving='moving')
+                await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='moving')
 
             if axpar.is_move_interrupted:
                 self.stop_axis(axis_index) # stop the motor motion immediately
                 logging.warning("Motion interrupted by limit switch or stop command.")
                 break
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
-        if EPICS_fields is not None:
-            await update_epics_motorfields_instance(axpar, EPICS_fields, moving_or_nonmoving='nonmoving')
+        if instance is not None:
+            await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')
             # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):
