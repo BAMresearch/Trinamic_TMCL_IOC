@@ -19,6 +19,7 @@ from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
 from .__init__ import ureg
 import logging
+from src.epics_utils import update_epics_motorfields_instance
 
 # class MotorAxisPVGroup(PVGroup):
 #     def __init__(self, *args, axis_parameters: AxisParameters, **kwargs):
@@ -29,7 +30,6 @@ import logging
 #         for attr_name in axis_parameters.pv_attributes:
 #             attr_value = getattr(axis_parameters, attr_name)
 #             create_pvs_for_attribute(attr_name, attr_value, axis_parameters, self)
-
 
 async def broadcast_precision_to_fields(record):
     """Update precision of all fields to that of the given record."""
@@ -89,8 +89,7 @@ async def motor_record(instance, async_lib, defaults=None,
     await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.user_low_limit.write(axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude) 
-    await fields.user_high_limit.write(axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude)
+    await update_epics_motorfields_instance(axpar, instance)
 
     while True:
         dwell = axpar.update_interval_nonmoving
@@ -136,7 +135,6 @@ async def motor_record(instance, async_lib, defaults=None,
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
-
         # for _ in range(num_steps):
         #     if fields.stop.value != 0:
         #         await fields.stop.write(0)
@@ -158,6 +156,7 @@ async def motor_record(instance, async_lib, defaults=None,
 
         await fields.motor_is_moving.write(0)
         await fields.done_moving_to_value.write(1)
+        await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False
 
 class TrinamicMotor(PVGroup):
