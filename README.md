@@ -27,6 +27,12 @@ board_control.move_axis(axis_index=0, position_steps=10000)
 ## Development
 
 This package is in the early stages of development. Contributions and feedback are welcome.
+Tasks to do include: 
+  - make a method that updates the axis parameters from the EPICS fields (in case we're adjusting the axis parameters via EPICS). 
+  - make a method that allows us to update the offset value. This should perhaps adjust the user limits too...
+  - make a convenience method that allows us to set the current position to zero user value
+  - make a method that starts a home action when HOMF or HOMR is set to 1. 
+  - tie the above together with a neat bow. 
 
 ## License
 
