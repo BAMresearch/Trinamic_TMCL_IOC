@@ -33,6 +33,7 @@ Tasks to do include:
   - make a convenience method that allows us to set the current position to zero user value
   - make a method that starts a home action when HOMF or HOMR is set to 1. 
   - tie the above together with a neat bow. 
+  - check the limit switch setting: is the "right" limit switch the negative or positive limit?
 
 ## License
 
