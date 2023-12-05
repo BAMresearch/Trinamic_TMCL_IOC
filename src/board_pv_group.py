@@ -63,7 +63,7 @@ async def motor_record(instance, async_lib, defaults=None,
     fields: MotorFields = instance.field_inst
     have_new_position = False
 
-    async def value_write_hook(fields, value):
+    async def value_write_hook(instance, value):
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
         print(f"New position {value} requested on axis {axis_index} ")
