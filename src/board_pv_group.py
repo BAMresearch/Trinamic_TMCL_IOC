@@ -68,7 +68,29 @@ async def motor_record(instance, async_lib, defaults=None,
         # This happens when a user puts to `motor.VAL`
         print(f"New position {value} requested on axis {axis_index} ")
         have_new_position = True
-        # TODO: can we actually move directly from here?
+        # TODO: can we actually move directly from here? Looks like no.. 
+
+    fields.value_write_hook = value_write_hook
+
+    await instance.write_metadata(precision=defaults['precision'])
+    await broadcast_precision_to_fields(instance)
+
+    await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
+    await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
+    await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
+    await update_epics_motorfields_instance(axpar, instance, '') 
+
+    while True:
+        motion_control.board_control.update_axis_parameters(axis_index)
+        await update_epics_motorfields_instance(axpar, instance)
+        if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
+            # we are not moving
+            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
+            await epics_reset_stop_flag(fields)
+            await asyncio.sleep(axpar.update_interval_nonmoving)
+            motion_control.board_control.update_axis_parameters(axis_index)
+            continue
+
         # if we are here, we are moving.
         motion_control.board_control.update_axis_parameters(axis_index)
         axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
@@ -92,27 +114,6 @@ async def motor_record(instance, async_lib, defaults=None,
         have_new_position = False
         await epics_reset_stop_flag(fields)
 
-
-    fields.value_write_hook = value_write_hook
-
-    await instance.write_metadata(precision=defaults['precision'])
-    await broadcast_precision_to_fields(instance)
-
-    await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await update_epics_motorfields_instance(axpar, instance, '') 
-
-    while True:
-        motion_control.board_control.update_axis_parameters(axis_index)
-        await update_epics_motorfields_instance(axpar, instance)
-        if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
-            # we are not moving
-            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
-            await epics_reset_stop_flag(fields)
-            await asyncio.sleep(axpar.update_interval_nonmoving)
-            motion_control.board_control.update_axis_parameters(axis_index)
-            continue
 
 
 class TrinamicMotor(PVGroup):
