@@ -19,7 +19,7 @@ from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
 from .__init__ import ureg
 import logging
-from src.epics_utils import update_epics_motorfields_instance
+from src.epics_utils import epics_reset_stop_flag, update_epics_motorfields_instance, update_epics_motorfields_instance_nonmoving, update_epics_motorfields_instance_moving
 
 # class MotorAxisPVGroup(PVGroup):
 #     def __init__(self, *args, axis_parameters: AxisParameters, **kwargs):
@@ -89,42 +89,31 @@ async def motor_record(instance, async_lib, defaults=None,
     await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await update_epics_motorfields_instance(axpar, instance)
+    await update_epics_motorfields_instance(axpar, instance, '') 
 
     while True:
         dwell = axpar.update_interval_nonmoving
         target_pos = instance.value
         diff = (target_pos - axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         motion_control.board_control.update_axis_parameters(axis_index)
+        await update_epics_motorfields_instance(axpar, instance)
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
             # we are not moving
-            await fields.stop_pause_move_go.write('Stop')
-            if fields.stop.value != 0:
-                fields.stop.write(0)
-            await fields.motor_is_moving.write(0)
+            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
+            await epics_reset_stop_flag(fields)
             await async_lib.library.sleep(axpar.update_interval_nonmoving)
             # weirdness check 4
             # this one is causing issues, but if I can't write the actual coordinate to value, it'll report it's somewhere else...
             # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             # axpar.target_coordinate = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit) # this is the target position in real-world units
-            await fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
-            await fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-            await fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
             motion_control.board_control.update_axis_parameters(axis_index)
             continue
 
-        await fields.stop_pause_move_go.write('Go') # SPMG field normally "go"
         # if we are here, we are moving.
-        if fields.stop.value != 0:
-            await fields.stop.write(0) # reset the stop flag
-
         motion_control.board_control.update_axis_parameters(axis_index)
         axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
-        await fields.dial_desired_value.write((axpar.target_coordinate+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-        await fields.done_moving_to_value.write(0)
-        await fields.motor_is_moving.write(1)
-        readback = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude
-        await fields.user_readback_value.write(readback)
+        await update_epics_motorfields_instance(axpar, instance, 'moving')
+        
         # kickoff the move:
         await motion_control.kickoff_move_to_coordinate(axis_index, target_pos, absolute_or_relative='absolute')
         # now we await completion
@@ -153,11 +142,12 @@ async def motor_record(instance, async_lib, defaults=None,
         # else:
         #     # Only executed if we didn't break
         #     await fields.user_readback_value.write(target_pos)
-
+        await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
         await fields.motor_is_moving.write(0)
         await fields.done_moving_to_value.write(1)
-        await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+        # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False
+        await epics_reset_stop_flag(fields)
 
 class TrinamicMotor(PVGroup):
     motor = pvproperty(value=0.0, name='', record='motor',
