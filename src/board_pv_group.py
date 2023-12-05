@@ -70,8 +70,8 @@ async def motor_record(instance, async_lib, defaults=None,
         have_new_position = True
         # TODO: can we actually move directly from here? Looks like no.. maybe just the first bit tho?
         # if we are here, we are moving.
-        motion_control.board_control.update_axis_parameters(axis_index)
         axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
+        motion_control.board_control.update_axis_parameters(axis_index)
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         
         print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
