@@ -121,32 +121,13 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
+        await update_epics_motorfields_instance(axpar, instance, 'moving')
         print(f"Maybe backlash moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
-        # for _ in range(num_steps):
-        #     if fields.stop.value != 0:
-        #         await fields.stop.write(0)
-        #         await instance.write(readback)
-        #         break
-        #     if fields.stop_pause_move_go.value == 'Stop':
-        #         await instance.write(readback)
-        #         break
-
-        #     readback = axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude
-        #     raw_readback = axpar.real_world_to_steps(axpar.actual_coordinate_RBV) # this is the readback in steps
-        #     await fields.user_readback_value.write(readback)
-        #     await fields.dial_readback_value.write(readback)
-        #     await fields.raw_readback_value.write(raw_readback)
-        #     await async_lib.library.sleep(dwell)
-        # else:
-        #     # Only executed if we didn't break
-        #     await fields.user_readback_value.write(target_pos)
         await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
-        await fields.motor_is_moving.write(0)
-        await fields.done_moving_to_value.write(1)
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False
         await epics_reset_stop_flag(fields)
