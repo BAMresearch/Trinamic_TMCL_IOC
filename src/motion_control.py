@@ -85,7 +85,6 @@ class MotionControl:
             target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
         target_coordinate = quantity_converter(target_coordinate)
 
-
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
 

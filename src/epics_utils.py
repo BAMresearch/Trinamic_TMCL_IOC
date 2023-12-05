@@ -40,7 +40,6 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     else:
         await fields.user_direction.write('Pos')
     
-
     if moving_or_nonmoving == 'nonmoving':
         await update_epics_motorfields_instance_nonmoving(axpar, instance)
     elif moving_or_nonmoving == 'moving':

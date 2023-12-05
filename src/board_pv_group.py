@@ -114,12 +114,14 @@ async def motor_record(instance, async_lib, defaults=None,
         axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         
+        print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         # kickoff the move:
         await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
         # backlash if we must
+        print(f"Backlash moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
