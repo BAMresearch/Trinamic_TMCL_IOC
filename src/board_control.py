@@ -57,7 +57,7 @@ class BoardControl:
             self.module = TMCM6214(myInterface)
             return self.module.get_axis_parameter(self.module.motors[axis_index].AP.RightLimitSwitchPosition, axis_index) # limit switch distance in steps. 
 
-    def home_axis(self, axis_index:int):     
+    def home_axis(self, axis_index:int):
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             # self.module.reference_search(0, axis_index, self.boardpar.board_module_id)

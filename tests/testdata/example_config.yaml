@@ -21,7 +21,7 @@ axes:
       193: 2 # Reference search mode (see manual)
       194: 100000 # Reference search speed (see manual)
       195: 30000 # Reference switch speed (see manual), slow speed for determining exact switching point
-    velocity: "15000 steps/s" # maximum velocity for movement
+    velocity: "10 mm/s" # maximum velocity for movement
     acceleration_duration: "0.5 s" # acceleration duration until reaching max speed 
     backlash_direction: 1 # backlash direction (1 or -1)
     invert_axis_direction: false # invert axis direction (not implemented yet)

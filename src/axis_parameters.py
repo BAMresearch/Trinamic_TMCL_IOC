@@ -95,13 +95,13 @@ class AxisParameters:
         Convert velocity to microsteps per second.
         parameters:
         velocity: velocity to convert. If None, the default value from the axis parameters is used.
-        
+
         """
         if velocity is None:
             velocity = self.velocity
         if not velocity.dimensionality == (self.base_realworld_unit/ureg.s).dimensionality:
             logging.warning(f"incompatible units {velocity.units} in velocity_in_microsteps_per_second")
-        return (velocity / self.steps_to_realworld_conversion_quantity).to('steps/s').magnitude # steps per second
+        return (velocity * self.steps_to_realworld_conversion_quantity).to('steps/s').magnitude # steps per second
     
     def acceleration_in_microsteps_per_second_squared(self, acceleration_duration:ureg.Quantity=None):
         """
@@ -113,7 +113,7 @@ class AxisParameters:
             acceleration_duration = self.acceleration_duration
         if not acceleration_duration.dimensionality == (ureg.s).dimensionality:
             logging.warning(f"incompatible units {acceleration_duration.units} in acceleration_duration_in_microsteps_per_second_squared")
-        return (self.velocity / self.acceleration_duration).to('steps/s**2').magnitude
+        return (self.velocity_in_microsteps_per_second() / self.acceleration_duration).to('steps/s**2').magnitude
 
     def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
