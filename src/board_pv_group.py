@@ -11,26 +11,15 @@ import asyncio
 from pathlib import Path
 from textwrap import dedent
 
-from caproto.server import PVGroup, SubGroup, ioc_arg_parser, pvproperty, run
+from caproto.server import PVGroup, pvproperty
 from caproto.server.records import MotorFields
 from src.board_control import BoardControl
 from src.motion_control import MotionControl
 from src.configuration_management import ConfigurationManagement
-from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
 from . import ureg
 import logging
-from src.epics_utils import epics_reset_stop_flag, update_epics_motorfields_instance, update_epics_motorfields_instance_nonmoving, update_epics_motorfields_instance_moving
-
-# class MotorAxisPVGroup(PVGroup):
-#     def __init__(self, *args, axis_parameters: AxisParameters, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.axis_parameters = axis_parameters
-
-#         # Dynamically create PVs for each attribute listed in pv_attributes
-#         for attr_name in axis_parameters.pv_attributes:
-#             attr_value = getattr(axis_parameters, attr_name)
-#             create_pvs_for_attribute(attr_name, attr_value, axis_parameters, self)
+from src.epics_utils import epics_reset_stop_flag, update_epics_motorfields_instance
 
 async def broadcast_precision_to_fields(record):
     """Update precision of all fields to that of the given record."""
@@ -60,7 +49,7 @@ async def motor_record(instance, async_lib, defaults=None,
         Update rate in Hz.
     """
     if defaults is None:
-        defaults = dict(
+        defaults = dict( # how many of these defaults do I actually need? I don't think I'm using them..
             velocity=0.1,
             precision=3,
             acceleration=1.0,
@@ -79,30 +68,7 @@ async def motor_record(instance, async_lib, defaults=None,
         # This happens when a user puts to `motor.VAL`
         print(f"New position {value} requested on axis {axis_index} ")
         have_new_position = True
-        # we've a method for this... float or int values are also automatically converted. 
-        # but maybe this should be done in the while loop below. 
-
-    fields.value_write_hook = value_write_hook
-
-    await instance.write_metadata(precision=defaults['precision'])
-    await broadcast_precision_to_fields(instance)
-
-    await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await update_epics_motorfields_instance(axpar, instance, '') 
-
-    while True:
-        motion_control.board_control.update_axis_parameters(axis_index)
-        await update_epics_motorfields_instance(axpar, instance)
-        if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
-            # we are not moving
-            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
-            await epics_reset_stop_flag(fields)
-            await asyncio.sleep(axpar.update_interval_nonmoving)
-            motion_control.board_control.update_axis_parameters(axis_index)
-            continue
-
+        # TODO: can we actually move directly from here?
         # if we are here, we are moving.
         motion_control.board_control.update_axis_parameters(axis_index)
         axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
@@ -125,6 +91,29 @@ async def motor_record(instance, async_lib, defaults=None,
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False
         await epics_reset_stop_flag(fields)
+
+
+    fields.value_write_hook = value_write_hook
+
+    await instance.write_metadata(precision=defaults['precision'])
+    await broadcast_precision_to_fields(instance)
+
+    await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
+    await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
+    await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
+    await update_epics_motorfields_instance(axpar, instance, '') 
+
+    while True:
+        motion_control.board_control.update_axis_parameters(axis_index)
+        await update_epics_motorfields_instance(axpar, instance)
+        if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
+            # we are not moving
+            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
+            await epics_reset_stop_flag(fields)
+            await asyncio.sleep(axpar.update_interval_nonmoving)
+            motion_control.board_control.update_axis_parameters(axis_index)
+            continue
+
 
 class TrinamicMotor(PVGroup):
     """
