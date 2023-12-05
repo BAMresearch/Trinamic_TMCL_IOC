@@ -121,7 +121,7 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
         # backlash if we must
-        print(f"Backlash moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
+        print(f"Maybe backlash moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)

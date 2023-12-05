@@ -97,6 +97,7 @@ class MotionControl:
 
         # Apply backlash correction if needed
         backlash_needed, adjusted_backlashed_target = self.is_backlash_needed(axis_params, adjusted_target)
+        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
         # Perform the movement
         steps = axis_params.real_world_to_steps(adjusted_backlashed_target + axis_params.user_offset)
         self.board_control.move_axis(axis_index, steps)
@@ -133,6 +134,8 @@ class MotionControl:
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
         backlash_needed, adjusted_target = self.is_backlash_needed(axis_params, adjusted_target)
+        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
+
         # apply backlash move if needed
         if backlash_needed:
             steps = axis_params.real_world_to_steps(adjusted_target + axis_params.user_offset)
