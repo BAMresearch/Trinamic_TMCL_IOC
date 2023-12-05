@@ -3,3 +3,4 @@ caproto==1.1.1
 Pint==0.22
 -e git+https://github.com/toqduj/PyTrinamic_with_socket.git@07f2e136d29e8aee875164a9d08857367d5d2754#egg=pytrinamic
 PyYAML==6.0.1
+numpy==1.26.2
