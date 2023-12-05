@@ -32,6 +32,10 @@ def validate_user_limits(instance, attribute, value):
 class AxisParameters:
     configurable_parameters: Dict[int, int] = attr.field(factory=dict)
 
+    # while these can be configured using configurable_parameters, I think it is nice to have access to them here. 
+    velocity: pint.Quantity = attr.field(default='1.0 mm/s', validator=validate_quantity, converter=quantity_converter)
+    acceleration_duration: pint.Quantity = attr.field(default='1.0 s', validator=validate_quantity, converter=quantity_converter)
+
     backlash_direction: int = attr.field(default=1, validator=validate_backlash_direction)
     # invert axis direction is not implemented yet.
     invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
@@ -85,6 +89,31 @@ class AxisParameters:
         'is_homed_RBV',
         'is_position_reached_RBV',
         'short_id']
+
+    def velocity_in_microsteps_per_second(self, velocity:ureg.Quantity=None):
+        """
+        Convert velocity to microsteps per second.
+        parameters:
+        velocity: velocity to convert. If None, the default value from the axis parameters is used.
+        
+        """
+        if velocity is None:
+            velocity = self.velocity
+        if not velocity.dimensionality == (self.base_realworld_unit/ureg.s).dimensionality:
+            logging.warning(f"incompatible units {velocity.units} in velocity_in_microsteps_per_second")
+        return (velocity / self.steps_to_realworld_conversion_quantity).to('steps/s').magnitude # steps per second
+    
+    def acceleration_in_microsteps_per_second_squared(self, acceleration_duration:ureg.Quantity=None):
+        """
+        Convert acceleration duration to microsteps per second squared.
+        parameters:
+        acceleration_duration: duration of the acceleration phase. If None, the default value from the axis parameters is used.
+        """
+        if acceleration_duration is None:
+            acceleration_duration = self.acceleration_duration
+        if not acceleration_duration.dimensionality == (ureg.s).dimensionality:
+            logging.warning(f"incompatible units {acceleration_duration.units} in acceleration_duration_in_microsteps_per_second_squared")
+        return (self.velocity / self.acceleration_duration).to('steps/s**2').magnitude
 
     def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""

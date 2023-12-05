@@ -33,10 +33,24 @@ class BoardControl:
             for key, value in axpar.configurable_parameters.items():
                 print(f"setting {axis_index=} {key=} {value=}")
                 self.module.set_axis_parameter(key, axis_index, value)
+            self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
+            self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
 
     def initialize_axes(self):
         for axpar in self.boardpar.axes_parameters:
             self.initialize_axis(axpar.axis_number)
+
+    def set_velocity_in_microsteps_per_second(self, axis_index:int, velocity_in_microsteps_per_second:int):
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface)
+            axis = self.module.motors[axis_index]
+            axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
+
+    def set_acceleration_in_microsteps_per_second_squared(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int):
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface)
+            axis = self.module.motors[axis_index]
+            axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
 
     def get_end_switch_distance(self, axis_index:int):
         with self.connection_manager.connect() as myInterface:
