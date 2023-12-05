@@ -33,7 +33,9 @@ axes:
     negative_user_limit: "-49 mm" # negative user coordinate limit
     positive_user_limit: "49 mm" # positive user coordinate limit
     short_id: "ysam" # short identifier for the axis, e.g. "x", "y", "z", "theta", "phi", "psi"
-    description: "horizontal sample stage axis" # description of the axis
+    description: "horizontal sample stage axis" # description of the 
+    update_interval_nonmoving: 0.5 # update interval for non-moving axes
+    update_interval_moving: 0.01 # update interval for moving axes
   # - axis_number: 1
   #   configurable_parameters:
   #     4: 150000 # maximum positioning speed in microsteps/s

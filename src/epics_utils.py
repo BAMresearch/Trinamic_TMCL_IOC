@@ -3,9 +3,8 @@ import logging
 from caproto.server.records import MotorFields, pvproperty
 from . import ureg
 from src.axis_parameters import AxisParameters
-from src.board_parameters import BoardParameters    
 
-async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvproperty, moving_or_nonmoving:str=''):
+async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvproperty, moving_or_nonmoving:str='') -> None:
     """
     Updates the motor record fields in the EPICS IOC with the values from the AxisParameters instance.
     If moving_or_nonmoving is 'moving', the fields that are only relevant when the motor is moving are updated.
@@ -45,14 +44,14 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     elif moving_or_nonmoving == 'moving':
         await update_epics_motorfields_instance_moving(axpar, instance)
 
-async def update_epics_motorfields_instance_nonmoving(axpar: AxisParameters, instance:pvproperty):
+async def update_epics_motorfields_instance_nonmoving(axpar: AxisParameters, instance:pvproperty) -> None:
     """special fields in addition to update_epics_motorfields_instance to (re)set when the motor stage is not moving"""
     fields: MotorFields = instance.field_inst
     await fields.done_moving_to_value.write(1)
     await fields.stop_pause_move_go.write('Stop')
     await fields.motor_is_moving.write(0)
 
-async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instance:pvproperty):
+async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instance:pvproperty) -> None:
     """special fields in addition to update_epics_motorfields_instance to (re)set when the motor stage is moving"""
     fields: MotorFields = instance.field_inst
     await fields.raw_desired_value.write(axpar.real_world_to_steps(axpar.target_coordinate+axpar.user_offset))
@@ -64,7 +63,7 @@ async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instan
     # await fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
     # await fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
 
-async def epics_reset_stop_flag(fields: MotorFields):
+async def epics_reset_stop_flag(fields: MotorFields) -> None:
     """resets the stop flag to 0"""
     if fields.stop.value != 0:
         fields.stop.write(0)
