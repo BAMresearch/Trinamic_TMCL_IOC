@@ -7,7 +7,7 @@ from caproto.server import PVGroup, ioc_arg_parser, run
 from src.board_parameters import BoardParameters
 from src.board_control import BoardControl
 from src.configuration_management import ConfigurationManagement
-from src.create_pv_for_attribute import create_pvs_for_attribute
+from src.depreciated.create_pv_for_attribute import create_pvs_for_attribute
 from src.motion_control import MotionControl
 
 ureg = pint.UnitRegistry()
