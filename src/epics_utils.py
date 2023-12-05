@@ -23,7 +23,8 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     await fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
     await fields.engineering_units.write(format(axpar.base_realworld_unit, '~')) # this is the base unit, e.g. 'mm'
     await fields.user_offset.write(axpar.user_offset.to(axpar.base_realworld_unit).magnitude)
-    await fields.motor_step_size.write(axpar.steps_to_realworld_conversion_quantity.to(axpar.base_realworld_unit/ureg.Unit('step')).magnitude)
+    await fields.motor_step_size.write(axpar.steps_to_realworld_conversion_quantity.to(ureg.Unit('steps')/axpar.base_realworld_unit).magnitude)
+    await fields.base_velocity.write(0) # dummy value
     await fields.user_high_limit_switch.write(axpar.positive_limit_switch_status_RBV)
     await fields.user_low_limit_switch.write(axpar.negative_limit_switch_status_RBV)
     await fields.bl_distance.write(axpar.backlash.to(axpar.base_realworld_unit).magnitude)
