@@ -33,8 +33,8 @@ class BoardControl:
             for key, value in axpar.configurable_parameters.items():
                 print(f"setting {axis_index=} {key=} {value=}")
                 self.module.set_axis_parameter(key, axis_index, value)
-            self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
-            self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
+        self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
+        self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
 
     def initialize_axes(self):
         for axpar in self.boardpar.axes_parameters:
