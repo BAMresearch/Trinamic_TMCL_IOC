@@ -1,4 +1,6 @@
 from typing import Union
+
+import numpy as np
 from .board_control import BoardControl
 from .axis_parameters import AxisParameters, quantity_converter
 from . import ureg
@@ -134,8 +136,11 @@ class MotionControl:
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
         backlash_needed, adjusted_target = self.is_backlash_needed(axis_params, adjusted_target)
-        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
+        # of course it will think backlash is not needed... it's in the opposite direction!
+        if np.isclose(abs(axis_params.actual_coordinate_RBV - adjusted_target), axis_params.backlash, rtol=0.01):
+            backlash_needed = True
 
+        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
         # apply backlash move if needed
         if backlash_needed:
             steps = axis_params.real_world_to_steps(adjusted_target + axis_params.user_offset)
