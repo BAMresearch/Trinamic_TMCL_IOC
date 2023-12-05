@@ -8,22 +8,30 @@ from pytrinamic.connections import ConnectionManager
 from pytrinamic.modules import TMCM6214
 from caproto.server.records import MotorFields, pvproperty
 
+from src.epics_utils import update_epics_motorfields_instance
+
 class BoardControl:
     """low-level commands to communicate with the board, addressing basic board funccionalities"""
-    def __init__(self, boardpar:BoardParameters): # , connection_string:str = "--interface socket_serial_tmcl --port 192.168.0.253:4016 --host-id 3 --module-id 0"):
+    def __init__(self, boardpar:BoardParameters) -> None: # , connection_string:str = "--interface socket_serial_tmcl --port 192.168.0.253:4016 --host-id 3 --module-id 0"):
         connection_string = f"--interface socket_serial_tmcl --port {boardpar.ip_address}:{boardpar.port_number} --host-id 3 --module-id {boardpar.board_module_id}"
         self.connection_manager = ConnectionManager(connection_string)
         self.boardpar = boardpar
         self.module = boardpar.board_module_id
 
-    def initialize_board(self):
+    def initialize_board(self) -> None:
+        """
+        Initializes the board with the parameters from the BoardParameters instance. Sets the global parameters on the board.
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
             for key, value in self.boardpar.board_configurable_parameters.items():
                 print(f"setting board {key=} {value=}")
                 self.module.set_global_parameter(key, 0, value) # these are automatically stored
     
-    def initialize_axis(self, axis_index:int):
+    def initialize_axis(self, axis_index:int) -> None:
+        """
+        Initializes a single axis with the parameters from the AxisParameters instance. Sets the axis parameters on the board.
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             axpar=self.boardpar.axes_parameters[axis_index]
@@ -33,38 +41,60 @@ class BoardControl:
         self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
         self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
 
-    def initialize_axes(self):
+    def initialize_axes(self) -> None:
+        """
+        Initializes all axes on the board with the parameters from the BoardParameters instance.
+        """
         for axpar in self.boardpar.axes_parameters:
             self.initialize_axis(axpar.axis_number)
 
-    def set_velocity_in_microsteps_per_second(self, axis_index:int, velocity_in_microsteps_per_second:int):
+    def set_velocity_in_microsteps_per_second(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
+        """
+        sets the velocity in microsteps per second for the given axis. Sends it to the board.
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
 
-    def set_acceleration_in_microsteps_per_second_squared(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int):
+    def set_acceleration_in_microsteps_per_second_squared(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int) -> None:
+        """
+        sets the acceleration in microsteps per second squared for the given axis. Sends it to the board.
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
 
-    def get_end_switch_distance(self, axis_index:int):
+    def get_end_switch_distance(self, axis_index:int) -> int:
+        """
+        Returns the distance between the end switches in steps.
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             return self.module.get_axis_parameter(self.module.motors[axis_index].AP.RightLimitSwitchPosition, axis_index) # limit switch distance in steps. 
 
-    def home_axis(self, axis_index:int):
+    def home_axis(self, axis_index:int) -> None:
+        """
+        Homes the motor on the given axis. 
+        """
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             # self.module.reference_search(0, axis_index, self.boardpar.board_module_id)
             myInterface.reference_search(0, axis_index, self.boardpar.board_module_id)
     
-    def check_if_moving(self, axis_index:int):
+    def check_if_moving(self, axis_index:int) -> bool:
+        """
+        Checks if the motor on the given axis is moving by checking the (ideally updated) axis parameters.
+        """
         self.update_axis_parameters(axis_index)
         return bool((not self.boardpar.axes_parameters[axis_index].is_position_reached_RBV) and (self.boardpar.axes_parameters[axis_index].is_moving_RBV))
 
-    async def await_move_completion(self, axis_index:int, EPICS_fields:Union[MotorFields, None]=None, instance:Union[pvproperty, None]=None):
+    async def await_move_completion(self, axis_index:int, EPICS_fields:Union[MotorFields, None]=None, instance:Union[pvproperty, None]=None) -> None:
+        """
+        Waits until the motor on the given axis has completed its motion. Updates the axis parameters and the EPICS fields.
+        """
+
         self.update_axis_parameters(axis_index)
         axpar = self.boardpar.axes_parameters[axis_index]
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
@@ -76,22 +106,25 @@ class BoardControl:
             # if instance is not None: 
             #     await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             if EPICS_fields is not None:
-                await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
-                await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-                await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
+                # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+                # await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
+                # await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
                 if EPICS_fields.stop.value == 1 or EPICS_fields.stop_pause_move_go.value == 'Stop':
                     self.stop_axis(axis_index)
                     await EPICS_fields.stop.write(0)
                     axpar.is_move_interrupted = True
                     logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} and/or {EPICS_fields.stop_pause_move_go.value=}.")
                     break
+                await update_epics_motorfields_instance(axpar, EPICS_fields, moving_or_nonmoving='moving')
+
             if axpar.is_move_interrupted:
                 self.stop_axis(axis_index) # stop the motor motion immediately
                 logging.warning("Motion interrupted by limit switch or stop command.")
                 break
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
         if EPICS_fields is not None:
-            await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
+            await update_epics_motorfields_instance(axpar, EPICS_fields, moving_or_nonmoving='nonmoving')
+            # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):
         """
