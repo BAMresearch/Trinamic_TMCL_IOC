@@ -1,6 +1,6 @@
 
 import attr
-from typing import Dict, Optional
+from typing import Dict
 from src.axis_parameters import AxisParameters
 import socket
 from typing import List
@@ -21,6 +21,9 @@ def validate_board_module_id(instance, attribute, value):
 
 @attr.define
 class BoardParameters:
+    """
+    Some basic configuration parameters pertaining to the board. This contains the axes parameters for this board as well.
+    """
     # Board-level configurable parameters
     board_configurable_parameters: Dict[int, int] = attr.field(factory=dict)
 

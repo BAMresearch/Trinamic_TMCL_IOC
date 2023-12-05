@@ -33,7 +33,7 @@ async def broadcast_precision_to_fields(record):
 async def motor_record(instance, async_lib, defaults=None,
                                  tick_rate_hz=10., motion_control:MotionControl=None, axis_index:int=0):
     """
-    A simple motor record.
+    A simple motor record for use with caproto.server and the Trinamics board. 
 
     Parameters
     ----------

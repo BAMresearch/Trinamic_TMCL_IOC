@@ -1,6 +1,6 @@
 from caproto.server import PVGroup, ioc_arg_parser, run
 from src.axis_parameters import AxisParameters
-from src.create_pv_for_attribute import create_pvs_for_attribute
+from src.depreciated.create_pv_for_attribute import create_pvs_for_attribute
 
 class MotorAxisPVGroup(PVGroup):
     def __init__(self, *args, axis_parameters: AxisParameters, **kwargs):

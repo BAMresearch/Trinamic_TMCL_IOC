@@ -76,19 +76,6 @@ class AxisParameters:
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric
     description: str = attr.field(default="TMCM-6214 Axis") # description of the axis
 
-    # List of attribute names to be converted into PVs - not used
-    pv_attributes: list = [
-        'actual_coordinate_RBV', 
-        'target_coordinate',
-        'negative_user_limit',
-        'positive_user_limit',
-        'stage_motion_limit_RBV',
-        'user_offset',
-        'is_moving_RBV',
-        'is_homed_RBV',
-        'is_position_reached_RBV',
-        'short_id']
-
     def velocity_in_microsteps_per_second(self, velocity:ureg.Quantity=None, as_quantity:bool=False) -> Union[int, ureg.Quantity]:
         """
         Convert velocity to microsteps per second.
@@ -120,14 +107,6 @@ class AxisParameters:
     def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
         self.actual_coordinate_RBV = self.steps_to_real_world(steps) - self.user_offset
-
-    # def get_target_coordinate_in_steps(self, target_coordinate:ureg.Quantity) -> int:
-    #     """Calculates the target coordinate in step units. It first adds the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
-    #     return self.real_world_to_steps(target_coordinate + self.user_offset)
-
-    # def set_target_coordinate_by_steps(self, steps: int):
-    #     """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV_by_steps, it subtracts the user_offset to the conversion result."""
-    #     self.target_coordinate = self.steps_to_real_world(steps) - self.user_offset
 
     def steps_to_real_world(self, steps: int) -> ureg.Quantity:
         """

@@ -20,13 +20,19 @@ class ConfigurationManagement:
         ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
 
     @staticmethod
-    def _update_board_parameters(board_config, board_parameters):
+    def _update_board_parameters(board_config, board_parameters) -> None:
+        """
+        Sets the board parameters based on the board_config dict loaded from the YAML file.
+        """
         for key, value in board_config.items():
             if hasattr(board_parameters, key):
                 setattr(board_parameters, key, value)
 
     @staticmethod
-    def _update_axes_parameters(axes_config, board_parameters):
+    def _update_axes_parameters(axes_config, board_parameters) -> None:
+        """
+        Updates the axes parameters for all axes based on the axes_config dict loaded from the YAML file.
+        """
         for axis_config in axes_config:
             axis_number = axis_config.get('axis_number') 
             if (axis_number is not None) and (axis_number >= 0) and len(board_parameters.axes_parameters) < (axis_number+1): # axis_number can start at 0
@@ -35,7 +41,10 @@ class ConfigurationManagement:
                 ConfigurationManagement._update_axis_parameters(axis_config, board_parameters.axes_parameters[axis_number])
 
     @staticmethod
-    def _update_axis_parameters(axis_config, axis_parameters):
+    def _update_axis_parameters(axis_config, axis_parameters: AxisParameters) -> None:
+        """
+        Updates the axisparameters with the values in the axis_config dict loaded from the YAML file.
+        """
         for key, value in axis_config.items():
             if hasattr(axis_parameters, key):
                 setattr(axis_parameters, key, value)
