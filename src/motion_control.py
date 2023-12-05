@@ -1,7 +1,7 @@
 from typing import Union
 from .board_control import BoardControl
 from .axis_parameters import AxisParameters, quantity_converter
-from .__init__ import ureg
+from . import ureg
 import logging
 
 class MotionControl:

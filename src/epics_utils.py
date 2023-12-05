@@ -14,7 +14,7 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
 
     """
     fields: MotorFields = instance.field_inst
-    await fields.velocity.write(axpar.velocity.to(axpar.base_realworld_unit/ureg.Unit('s')).magnitude)
+    await fields.velocity.write(axpar.velocity.to(axpar.base_realworld_unit/ureg.s).magnitude)
     await fields.seconds_to_velocity.write(axpar.acceleration_duration.to(ureg.s).magnitude)
     await fields.user_low_limit.write(axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude) 
     await fields.user_high_limit.write(axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude)
@@ -27,7 +27,7 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     await fields.user_high_limit_switch.write(axpar.positive_limit_switch_status_RBV)
     await fields.user_low_limit_switch.write(axpar.negative_limit_switch_status_RBV)
     await fields.bl_distance.write(axpar.backlash.to(axpar.base_realworld_unit).magnitude)
-    await fields.bl_velocity.write(axpar.velocity.to(axpar.base_realworld_unit/ureg.Unit('s')).magnitude)
+    await fields.bl_velocity.write(axpar.velocity.to(axpar.base_realworld_unit/ureg.s).magnitude)
     await fields.dial_high_limit.write((axpar.positive_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
     await fields.dial_low_limit.write((axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
     await fields.disable_putfield.write(0) # dummy value

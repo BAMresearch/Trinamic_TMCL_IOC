@@ -17,7 +17,7 @@ from src.motion_control import MotionControl
 from src.configuration_management import ConfigurationManagement
 from .axis_parameters import AxisParameters
 from .board_parameters import BoardParameters
-from .__init__ import ureg
+from . import ureg
 import logging
 from src.epics_utils import epics_reset_stop_flag, update_epics_motorfields_instance, update_epics_motorfields_instance_nonmoving, update_epics_motorfields_instance_moving
 

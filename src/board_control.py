@@ -6,9 +6,6 @@ from src.board_parameters import BoardParameters
 import pytrinamic
 from pytrinamic.connections import ConnectionManager
 from pytrinamic.modules import TMCM6214
-import time
-from . import pint
-from . import ureg
 from caproto.server.records import MotorFields, pvproperty
 
 class BoardControl:

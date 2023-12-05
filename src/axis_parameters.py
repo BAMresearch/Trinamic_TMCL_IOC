@@ -1,7 +1,6 @@
 import attr
 from typing import Dict, Union
-from .__init__ import ureg
-from .__init__ import pint
+from . import ureg
 import logging 
 
 def validate_backlash_direction(instance, attribute, value):
@@ -9,8 +8,8 @@ def validate_backlash_direction(instance, attribute, value):
         raise ValueError(f"Backlash direction must be -1 or 1, got {value}")
 
 def validate_quantity(instance, attribute, value):
-    if not isinstance(value, pint.Quantity):
-        raise TypeError("this value must be a pint.Quantity")
+    if not isinstance(value, ureg.Quantity):
+        raise TypeError("this value must be a ureg.Quantity")
     
 def quantity_converter(input_value):
     if isinstance(input_value, str):
@@ -33,33 +32,33 @@ class AxisParameters:
     configurable_parameters: Dict[int, int] = attr.field(factory=dict)
 
     # while these can be configured using configurable_parameters, I think it is nice to have access to them here. 
-    velocity: pint.Quantity = attr.field(default='1.0 mm/s', validator=validate_quantity, converter=quantity_converter)
-    acceleration_duration: pint.Quantity = attr.field(default='1.0 s', validator=validate_quantity, converter=quantity_converter)
+    velocity: ureg.Quantity = attr.field(default='1.0 mm/s', validator=validate_quantity, converter=quantity_converter)
+    acceleration_duration: ureg.Quantity = attr.field(default='1.0 s', validator=validate_quantity, converter=quantity_converter)
 
     backlash_direction: int = attr.field(default=1, validator=validate_backlash_direction)
     # invert axis direction is not implemented yet.
     invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
     # Custom unit conversion factor (e.g., steps to mm or steps to radians)
-    steps_to_realworld_conversion_quantity: pint.Quantity = attr.field(
+    steps_to_realworld_conversion_quantity: ureg.Quantity = attr.field(
         default='1 steps/mm', validator=validate_quantity, converter=quantity_converter)
 
     # Base unit for real-world measurements (e.g., mm for linear axes, radian for rotational axes)
-    base_realworld_unit: pint.Unit = attr.field(default=ureg.mm, converter=ureg.Unit)
+    base_realworld_unit: ureg.Unit = attr.field(default=ureg.mm, converter=ureg.Unit)
     
-    backlash: pint.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
+    backlash: ureg.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
 
     invert_limit_values: bool = attr.field(default=False)
-    actual_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
-    immediate_target_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this is the eventual / final target coordinate. 
-    target_coordinate: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    target_coordinate: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.
-    stage_motion_limit_RBV: pint.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=quantity_converter)
+    stage_motion_limit_RBV: ureg.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=quantity_converter)
     # user limits must always lie within the stage motion limits. It is validated for that when set. They are used in the motor motions to ensure that the motor does not move beyond the stage motion limits.
-    user_offset: pint.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=quantity_converter)
-    negative_user_limit: pint.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
-    positive_user_limit: pint.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
+    user_offset: ureg.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=quantity_converter)
+    negative_user_limit: ureg.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
+    positive_user_limit: ureg.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
 
     # some flags to indicate the state of the axis
     is_moving_RBV: bool = attr.field(default=False)
@@ -130,7 +129,7 @@ class AxisParameters:
     #     """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV_by_steps, it subtracts the user_offset to the conversion result."""
     #     self.target_coordinate = self.steps_to_real_world(steps) - self.user_offset
 
-    def steps_to_real_world(self, steps: int) -> pint.Quantity:
+    def steps_to_real_world(self, steps: int) -> ureg.Quantity:
         """
         Convert steps to real-world units.
 
@@ -143,7 +142,7 @@ class AxisParameters:
             logging.error(f"Conversion of {steps} steps to real-world units failed. Problem in conversion quantity or base realworld unit.")
         return result
 
-    def real_world_to_steps(self, distance_or_angle: pint.Quantity) -> int:
+    def real_world_to_steps(self, distance_or_angle: ureg.Quantity) -> int:
         """
         Convert real-world units (distance or angle) to steps.
 
