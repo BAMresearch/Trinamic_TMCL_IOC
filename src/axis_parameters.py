@@ -46,6 +46,9 @@ class AxisParameters:
 
     invert_limit_values: bool = attr.field(default=False)
     actual_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
+    immediate_target_coordinate_RBV: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    # this is the eventual / final target coordinate. 
     target_coordinate: pint.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.
     stage_motion_limit_RBV: pint.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=quantity_converter)
@@ -58,6 +61,8 @@ class AxisParameters:
     is_moving_RBV: bool = attr.field(default=False)
     is_homed_RBV: bool = attr.field(default=False)
     is_position_reached_RBV: bool = attr.field(default=False)
+    negative_limit_switch_status_RBV: bool = attr.field(default=False)
+    positive_limit_switch_status_RBV: bool = attr.field(default=False)
     
     # internal states:    
     is_move_interrupted: bool = attr.field(default=False) # this flag is set when the motion is interrupted by a limit switch or a stop command. It is reset when the motion is restarted.
@@ -68,7 +73,7 @@ class AxisParameters:
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric
     description: str = attr.field(default="TMCM-6214 Axis") # description of the axis
 
-    # List of attribute names to be converted into PVs
+    # List of attribute names to be converted into PVs - not used
     pv_attributes: list = [
         'actual_coordinate_RBV', 
         'target_coordinate',
@@ -85,13 +90,13 @@ class AxisParameters:
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
         self.actual_coordinate_RBV = self.steps_to_real_world(steps) - self.user_offset
 
-    def get_target_coordinate_in_steps(self, target_coordinate:ureg.Quantity) -> int:
-        """Calculates the target coordinate in step units. It first adds the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
-        return self.real_world_to_steps(target_coordinate + self.user_offset)
+    # def get_target_coordinate_in_steps(self, target_coordinate:ureg.Quantity) -> int:
+    #     """Calculates the target coordinate in step units. It first adds the user_offset from the target_coordinate, which is in real-world units, and then converts the result to steps."""
+    #     return self.real_world_to_steps(target_coordinate + self.user_offset)
 
-    def set_target_coordinate_by_steps(self, steps: int):
-        """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV_by_steps, it subtracts the user_offset to the conversion result."""
-        self.target_coordinate = self.steps_to_real_world(steps) - self.user_offset
+    # def set_target_coordinate_by_steps(self, steps: int):
+    #     """Sets the target coordinate by converting from steps to real-world units. Similar to set_actual_coordinate_RBV_by_steps, it subtracts the user_offset to the conversion result."""
+    #     self.target_coordinate = self.steps_to_real_world(steps) - self.user_offset
 
     def steps_to_real_world(self, steps: int) -> pint.Quantity:
         """

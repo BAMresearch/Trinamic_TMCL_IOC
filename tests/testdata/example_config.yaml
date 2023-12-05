@@ -22,11 +22,11 @@ axes:
       194: 100000 # Reference search speed (see manual)
       195: 30000 # Reference switch speed (see manual), slow speed for determining exact switching point
     backlash_direction: 1 # backlash direction (1 or -1)
-    invert_axis_direction: false # invert axis direction (true or false)... not implemented yet
+    invert_axis_direction: false # invert axis direction (not implemented yet)
     steps_to_realworld_conversion_quantity: '25600 steps/mm' # 12345 steps = 1 mm (unit defined in base_realworld_unit)
     base_realworld_unit: "mm" # base unit for realworld units (mm, radian, degree, etc). other quantities must be compatible, e.g. not degrees here and mm for backlash. These base units are also used as display units for the user interface.
-    backlash: "1 mm"
-    invert_limit_values: false # invert limit values before presenting them to the user (true or false)
+    backlash: "1 mm" # backlash amount. You need to reduce your positive and negative limits proportionately.
+    invert_limit_values: true # invert limit values before presenting them to the user (true or false). Polarity can be inverted in configurable_parameters 24 and 25.
     user_offset: "50 mm" # offset to be added to the motor position (which is always between 0 and stage_motion_limit_RBV) to translate to user coordinates
     negative_user_limit: "-49 mm" # negative user coordinate limit
     positive_user_limit: "49 mm" # positive user coordinate limit

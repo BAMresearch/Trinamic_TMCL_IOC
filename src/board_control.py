@@ -124,9 +124,15 @@ class BoardControl:
             axis = module.motors[axis_index]
 
             axpars.set_actual_coordinate_RBV_by_steps(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
-            axpars.set_target_coordinate_by_steps(int(axis.get_axis_parameter(axis.AP.TargetPosition)))            
+            axpars.immediate_target_coordinate_RBV = axpars.steps_to_real_world(int(axis.get_axis_parameter(axis.AP.TargetPosition)))
 
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
             axpars.is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
+            if axpars.invert_limit_values:
+                axpars.negative_limit_switch_status_RBV = ~bool(axis.get_axis_parameter(axis.AP.LeftLimitSwitch))
+                axpars.positive_limit_switch_status_RBV = ~bool(axis.get_axis_parameter(axis.AP.RightLimitSwitch))
+            else:
+                axpars.negative_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.LeftLimitSwitch))
+                axpars.positive_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.RightLimitSwitch))
 
     # Add other necessary motor control functions

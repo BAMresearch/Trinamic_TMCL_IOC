@@ -115,12 +115,12 @@ async def motor_record(instance, async_lib, defaults=None,
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         
         # kickoff the move:
-        await motion_control.kickoff_move_to_coordinate(axis_index, target_pos, absolute_or_relative='absolute')
+        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
         # backlash if we must
-        await motion_control.apply_optional_backlash_move(axis_index, target_pos, absolute_or_relative='absolute')
+        await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, fields, instance)
 
