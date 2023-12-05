@@ -1,5 +1,5 @@
 import attr
-from typing import Dict
+from typing import Dict, Union
 from .__init__ import ureg
 from .__init__ import pint
 import logging 
@@ -90,7 +90,7 @@ class AxisParameters:
         'is_position_reached_RBV',
         'short_id']
 
-    def velocity_in_microsteps_per_second(self, velocity:ureg.Quantity=None) -> int:
+    def velocity_in_microsteps_per_second(self, velocity:ureg.Quantity=None, as_quantity:bool=False) -> Union[int, ureg.Quantity]:
         """
         Convert velocity to microsteps per second.
         parameters:
@@ -101,7 +101,10 @@ class AxisParameters:
             velocity = self.velocity
         if not velocity.dimensionality == (self.base_realworld_unit/ureg.s).dimensionality:
             logging.warning(f"incompatible units {velocity.units} in velocity_in_microsteps_per_second")
-        return int((velocity * self.steps_to_realworld_conversion_quantity).to('steps/s').magnitude) # steps per second
+        if not as_quantity:
+            return int((velocity * self.steps_to_realworld_conversion_quantity).to('steps/s').magnitude) # steps per second
+        else:
+            return (velocity * self.steps_to_realworld_conversion_quantity).to('steps/s') # steps per second
     
     def acceleration_in_microsteps_per_second_squared(self, acceleration_duration:ureg.Quantity=None) -> int:
         """
@@ -113,7 +116,7 @@ class AxisParameters:
             acceleration_duration = self.acceleration_duration
         if not acceleration_duration.dimensionality == (ureg.s).dimensionality:
             logging.warning(f"incompatible units {acceleration_duration.units} in acceleration_duration_in_microsteps_per_second_squared")
-        return int((self.velocity_in_microsteps_per_second() / self.acceleration_duration).to('steps/s**2').magnitude)
+        return int((self.velocity_in_microsteps_per_second(as_quantity=True) / self.acceleration_duration).to('steps/s**2').magnitude)
 
     def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
