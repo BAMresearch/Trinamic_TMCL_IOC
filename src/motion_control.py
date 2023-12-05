@@ -22,10 +22,12 @@ class MotionControl:
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
         axpar.is_homed_RBV = False
         # home the axis
+        logging.info(f"Homing axis {axis_index}...")
         self.board_control.home_axis(axis_index)
         # wait for the moves to complete
         await self.board_control.await_move_completion(axis_index)
         await self.check_for_move_interrupt(axis_index)
+        logging.info(f"Axis {axis_index} homed, setting parameters.")
         # set the stage motion range limit to the end switch distance
         range_steps = self.board_control.get_end_switch_distance(axis_index)
         range_realworld = axpar.steps_to_real_world(range_steps)
@@ -33,10 +35,12 @@ class MotionControl:
         # now we re-set the user limits to re-validate that they lie within the stage motion limit
         axpar.negative_user_limit = self.board_control.boardpar.axes_parameters[axis_index].negative_user_limit
         axpar.positive_user_limit = self.board_control.boardpar.axes_parameters[axis_index].positive_user_limit
+        logging.info(f"Axis {axis_index} homed, stage motion range set to {range_realworld}. Moving to center of range.")
         # move out of limit range
         self.board_control.move_axis(axis_index, int(range_steps/2))
         await self.board_control.await_move_completion(axis_index)
         # indicate the stage is now homed.
+        logging.info(f"Axis {axis_index} homing complete.")
         axpar.is_homed_RBV = True # should be finished now. 
 
     def _prepare_axis_for_motion(self, axis_params: AxisParameters):

@@ -139,6 +139,7 @@ class BoardControl:
 
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
             axpars.is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
+            print(f"axis {axis_index=} {axis.get_axis_parameter(axis.AP.RightEndstop)=}")
             if axpars.invert_limit_values:
                 # not sure right=negative and left=positive. TODO: needs checking
                 axpars.negative_limit_switch_status_RBV = ~bool(axis.get_axis_parameter(axis.AP.RightEndstop))
