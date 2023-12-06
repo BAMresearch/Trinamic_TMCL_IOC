@@ -86,7 +86,7 @@ async def motor_record(instance, async_lib, defaults=None,
     await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await update_epics_motorfields_instance(axpar, instance, '') 
+    await update_epics_motorfields_instance(axpar, instance, '') # initial update of the EPICS fields. from this point on we can sync
 
     while True:
         motion_control.board_control.update_axis_parameters(axis_index)

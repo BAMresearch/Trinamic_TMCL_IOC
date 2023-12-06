@@ -32,14 +32,27 @@ class BoardControl:
         """
         Initializes a single axis with the parameters from the AxisParameters instance. Sets the axis parameters on the board.
         """
+        axpar=self.boardpar.axes_parameters[axis_index]
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            axpar=self.boardpar.axes_parameters[axis_index]
             for key, value in axpar.configurable_parameters.items():
                 print(f"setting {axis_index=} {key=} {value=}")
                 self.module.set_axis_parameter(key, axis_index, value)
         self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
         self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
+        self.set_axis_inversion_on_board(axis_index, axpar.invert_axis_direction) # this also sets the limit switch inversion
+
+    def update_board_parameters_from_axis_parameters(self, axis_index:int) -> None:
+        """
+        Updates the board parameters from the axis parameters, useful for example after getting updated parameters from EPICS. Sets the global parameters on the board.
+        """
+        axpar=self.boardpar.axes_parameters[axis_index]
+        self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
+        self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
+        self.set_axis_inversion_on_board(axis_index, axpar.invert_axis_direction) # this also sets the limit switch inversion
+
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
 
     def initialize_axes(self) -> None:
         """
@@ -47,6 +60,33 @@ class BoardControl:
         """
         for axpar in self.boardpar.axes_parameters:
             self.initialize_axis(axpar.axis_number)
+
+    def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
+        """
+        Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
+        this is inverted again if the axis direction is inverted. 
+        """
+        axpar=self.boardpar.axes_parameters[axis_index]
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface)
+            # not sure we need to also swap limit switches, but probably...
+            if axpar.invert_axis_direction:
+                self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(not(axpar.swap_limit_switches)))
+            else:
+                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+
+
+    def set_axis_inversion_on_board(self, axis_index:int, inverted:bool) -> None:
+        """
+        Sets the axis inversion on the board. 
+        """
+        # axpar=self.boardpar.axes_parameters[axis_index]
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface)
+            self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(inverted))
+        
+        # not sure we need to also swap limit switches, but probably...
+        self.set_swapped_limit_switches_on_board(axis_index)
 
     def set_velocity_in_microsteps_per_second(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
         """

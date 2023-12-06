@@ -28,7 +28,17 @@ class MotionControl:
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axis_params = self.board_control.boardpar.axes_parameters[axis_index]
         new_actual_coordinate = quantity_converter(new_actual_coordinate, axis_params.base_realworld_unit)
-        axis_params.user_offset += new_actual_coordinate - axis_params.actual_coordinate_RBV
+        delta = new_actual_coordinate - axis_params.actual_coordinate_RBV
+        self.user_coordinate_change_by_delta(axis_index, delta)
+
+    def user_coordinate_change_by_delta(self, axis_index_or_name: Union[int, str], delta: Union[ureg.Quantity, float]) -> None:
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
+        delta = quantity_converter(delta)
+        axis_params.user_offset += delta
+        axis_params.actual_coordinate_RBV += delta
+        axis_params.negative_user_limit += delta
+        axis_params.positive_user_limit += delta
         self.board_control.update_axis_parameters(axis_index)
         logging.info(f"User offset for axis {axis_index} changed to {axis_params.user_offset}.")
     
@@ -36,9 +46,8 @@ class MotionControl:
         """ sets the user offset for the specified axis to the current coordinate, effectively setting the current position to zero. """
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axis_params = self.board_control.boardpar.axes_parameters[axis_index]
-        axis_params.user_offset += axis_params.actual_coordinate_RBV
-        self.board_control.update_axis_parameters(axis_index) # update the actual_coordinate_RBV
-        logging.info(f"User offset for axis {axis_index} changed to {axis_params.user_offset}.")
+        delta = axis_params.actual_coordinate_RBV
+        self.user_coordinate_change_by_delta(axis_index, delta)
     
     async def home_await_and_set_limits(self, axis_index: int) -> None:
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
