@@ -11,13 +11,21 @@ def validate_quantity(instance, attribute, value):
     if not isinstance(value, ureg.Quantity):
         raise TypeError("this value must be a ureg.Quantity")
     
-def quantity_converter(input_value):
+def quantity_converter(input_value: Union[str, float, int, ureg.Quantity], target_unit:Union[str, ureg.Unit]=None):
+    """
+    Convert input_value to a ureg.Quantity. If input_value is a string, it is interpreted as a Quantity. If it is a float or int, it is converted to a Quantity using target_unit. If input_value is already a Quantity, it is returned unchanged.
+    Parameters:
+    input_value: value to convert
+    target_unit: unit to use for conversion if input_value is a float or int
+    """
     if isinstance(input_value, str):
         return ureg.Quantity(input_value)
     elif isinstance(input_value, ureg.Quantity):
         return input_value
+    elif isinstance(input_value, Union[float, int]) and target_unit is not None:
+        return ureg.Quantity(input_value, target_unit) # can deal with both str and ureg.Unit as target_unit
     else:
-        raise TypeError('Value must be either a string that can be interpreted as a Quantity or a Quantity already')
+        raise TypeError('Value must be either: 1) a float or int with a target_unit specified, 2) a string that can be interpreted as a Quantity or 3) a Quantity already')
 
 def validate_user_limits(instance, attribute, value):
     # Adjusted limits considering the user offset

@@ -18,7 +18,28 @@ class MotionControl:
             self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted = False
             logging.error("Motion was interrupted by a limit switch or a stop command.")
             
-
+    def user_coordinate_change(self, axis_index_or_name: Union[int, str], new_actual_coordinate: Union[ureg.Quantity, float]) -> None:
+        """ 
+        changes the user offset for the specified axis so that the requested value becomes the new actual coordinate.
+        Parameters:
+        axis_index_or_name: Axis index or its short_id.
+        new_actual_coordinate: New actual coordinate as a pint.Quantity with unit, or pint-interpretable string. If no unit is supplied (as string or quantity), the base_realworld_unit of the axis is assumed (e.g., mm for linear axes, radian for rotational axes), or steps if no base_realworld_unit is set.
+        """
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
+        new_actual_coordinate = quantity_converter(new_actual_coordinate, axis_params.base_realworld_unit)
+        axis_params.user_offset += new_actual_coordinate - axis_params.actual_coordinate_RBV
+        self.board_control.update_axis_parameters(axis_index)
+        logging.info(f"User offset for axis {axis_index} changed to {axis_params.user_offset}.")
+    
+    def user_coordinate_zero(self, axis_index_or_name: Union[int, str]) -> None:
+        """ sets the user offset for the specified axis to the current coordinate, effectively setting the current position to zero. """
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
+        axis_params.user_offset += axis_params.actual_coordinate_RBV
+        self.board_control.update_axis_parameters(axis_index) # update the actual_coordinate_RBV
+        logging.info(f"User offset for axis {axis_index} changed to {axis_params.user_offset}.")
+    
     async def home_await_and_set_limits(self, axis_index: int) -> None:
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
         # indicate the stage is not homed.
