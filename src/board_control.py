@@ -67,6 +67,7 @@ class BoardControl:
         this is inverted again if the axis direction is inverted. 
         """
         axpar=self.boardpar.axes_parameters[axis_index]
+        logging.info(f"setting swapped limit switches on board for {axpar.short_id} to {axpar.swap_limit_switches}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             # not sure we need to also swap limit switches, but probably...
@@ -81,6 +82,7 @@ class BoardControl:
         Sets the axis inversion on the board. 
         """
         # axpar=self.boardpar.axes_parameters[axis_index]
+        logging.info(f"setting axis inversion on board for {axis_index} to {inverted}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(inverted))
