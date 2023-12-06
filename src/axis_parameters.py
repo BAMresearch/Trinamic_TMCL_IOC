@@ -56,6 +56,7 @@ class AxisParameters:
     backlash: ureg.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
 
     invert_limit_values: bool = attr.field(default=False)
+    swap_limit_switches: bool = attr.field(default=False)
     actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
     immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
