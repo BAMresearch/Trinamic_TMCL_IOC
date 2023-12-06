@@ -24,7 +24,7 @@ class MotionControl:
         if instance is not None:
             # check the EPICS values whether we should stop:
             fields = instance.field_inst
-            if fields.stop.value or fields.stop_pause_move_go.value == 'Stop':
+            if fields.stop.value == 1 or fields.stop_pause_move_go.value == 'Stop':
                 logging.error("Motion was interrupted by an EPICS stop command.")
                 axpar.is_move_interrupted = True
 

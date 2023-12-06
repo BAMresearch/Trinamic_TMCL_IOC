@@ -44,8 +44,6 @@ class AxisParameters:
     acceleration_duration: ureg.Quantity = attr.field(default='1.0 s', validator=validate_quantity, converter=quantity_converter)
 
     backlash_direction: int = attr.field(default=1, validator=validate_backlash_direction)
-    # invert axis direction is not implemented yet.
-    invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
     # Custom unit conversion factor (e.g., steps to mm or steps to radians)
     steps_to_realworld_conversion_quantity: ureg.Quantity = attr.field(
         default='1 steps/mm', validator=validate_quantity, converter=quantity_converter)
@@ -55,8 +53,11 @@ class AxisParameters:
     
     backlash: ureg.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
 
-    invert_limit_values: bool = attr.field(default=False)
-    swap_limit_switches: bool = attr.field(default=False)
+    invert_limit_values: bool = attr.field(default=False) # invert logical values before displaying them to the user
+    # invert axis direction is not implemented yet.
+    invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
+    swap_limit_switches: bool = attr.field(default=False) # swap the limit switches when they are connected wrong. This gets inverted when the axis direction is inverted.
+
     actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
     immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)

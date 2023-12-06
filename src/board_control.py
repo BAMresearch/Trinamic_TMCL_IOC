@@ -38,21 +38,18 @@ class BoardControl:
             for key, value in axpar.configurable_parameters.items():
                 print(f"setting {axis_index=} {key=} {value=}")
                 self.module.set_axis_parameter(key, axis_index, value)
-        self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
-        self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
-        self.set_axis_inversion_on_board(axis_index, axpar.invert_axis_direction) # this also sets the limit switch inversion
+        self.update_board_parameters_from_axis_parameters(axis_index)
 
     def update_board_parameters_from_axis_parameters(self, axis_index:int) -> None:
         """
         Updates the board parameters from the axis parameters, useful for example after getting updated parameters from EPICS. Sets the global parameters on the board.
         """
         axpar=self.boardpar.axes_parameters[axis_index]
-        self.set_velocity_in_microsteps_per_second(axis_index, axpar.velocity_in_microsteps_per_second())
-        self.set_acceleration_in_microsteps_per_second_squared(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
-        self.set_axis_inversion_on_board(axis_index, axpar.invert_axis_direction) # this also sets the limit switch inversion
-
-        with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
+        self.set_velocity_in_microsteps_per_second_on_board(axis_index, axpar.velocity_in_microsteps_per_second())
+        self.set_acceleration_in_microsteps_per_second_squared_on_board(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
+        self.set_axis_inversion_on_board(axis_index) 
+        # not sure we need to also swap limit switches, but probably... if not, fix the logic in this method:
+        self.set_swapped_limit_switches_on_board(axis_index)
 
     def initialize_axes(self) -> None:
         """
@@ -66,33 +63,30 @@ class BoardControl:
         Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
         this is inverted again if the axis direction is inverted. 
         """
-        pass
+        pass # disabled while I figure out what's wrong with the limit switches implementation here. 
         axpar=self.boardpar.axes_parameters[axis_index]
         logging.info(f"setting swapped limit switches on board for {axpar.short_id} to {axpar.swap_limit_switches}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             # not sure we need to also swap limit switches, but probably...
             if axpar.invert_axis_direction:
-                self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(not(axpar.swap_limit_switches)))
+                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
             else:
                 self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
 
-
-    def set_axis_inversion_on_board(self, axis_index:int, inverted:bool) -> None:
+    def set_axis_inversion_on_board(self, axis_index:int) -> None:
         """
         Sets the axis inversion on the board. 
         """
         pass
-        # axpar=self.boardpar.axes_parameters[axis_index]
-        logging.info(f"setting axis inversion on board for {axis_index} to {inverted}")
+        axpar=self.boardpar.axes_parameters[axis_index]
+        logging.info(f"setting axis inversion on board for {axis_index} to {axpar.invert_axis_direction}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(inverted))
-        
-        # not sure we need to also swap limit switches, but probably...
-        self.set_swapped_limit_switches_on_board(axis_index)
+            self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
 
-    def set_velocity_in_microsteps_per_second(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
+
+    def set_velocity_in_microsteps_per_second_on_board(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
         """
         sets the velocity in microsteps per second for the given axis. Sends it to the board.
         """
@@ -101,7 +95,7 @@ class BoardControl:
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
 
-    def set_acceleration_in_microsteps_per_second_squared(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int) -> None:
+    def set_acceleration_in_microsteps_per_second_squared_on_board(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int) -> None:
         """
         sets the acceleration in microsteps per second squared for the given axis. Sends it to the board.
         """
@@ -169,6 +163,13 @@ class BoardControl:
                 self.stop_axis(axis_index) # stop the motor motion immediately
                 logging.warning("Motion interrupted by limit switch or stop command.")
                 break
+
+        if instance is not None:
+            # we can reset the stop flag. 
+            EPICS_fields = instance.field_inst
+            await EPICS_fields.stop.write(0)
+            await EPICS_fields.stop_pause_move_go.write('Go')
+
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
         # if instance is not None:
         #     await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')

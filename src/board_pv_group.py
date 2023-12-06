@@ -86,8 +86,10 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     
     # 7) check if the axis direction has been changed from EPICS
     if fields.user_direction.value == 'Neg' and not axpar.invert_axis_direction:
+        logging.info(f"Inverting axis direction for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = True
     elif fields.user_direction.value == 'Pos' and axpar.invert_axis_direction:
+        logging.info(f"Uninverting axis directionn (i.e. normal direction) for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = False
     
     # 8) check if the motor step size has been changed from EPICS
@@ -95,7 +97,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
         axpar.steps_to_realworld_conversion_quantity = 1./(fields.motor_step_size.value*ureg.Unit('steps')/axpar.base_realworld_unit)
 
     # 9) check if a homing operation has been started from EPICS
-    if fields.home_forward.value == 1 or fields.home_reverse.value == 1:
+    if fields.home_forward.value == 1 or fields.home_reverse.value == 1: # or both? but that would be weird.
         await mc.home_await_and_set_limits(axis_index)
         await fields.home_forward.write(0)
         await fields.home_reverse.write(0)

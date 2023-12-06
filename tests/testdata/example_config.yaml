@@ -14,13 +14,14 @@ axes:
       # 5: 300000 # maximum acceleration in microsteps/s^2
       6: 80 # motor current, with 255 being 1.9A (see manual)
       7: 0 # motor standby current, with 255 being 1.9A (see manual)
-      14: 0 # swap limit switches
+      # 14: 0 # swap limit switches - this can be done by swap_limit_switches now
       24: 0 # left limit switch polarity (normal, see manual)
       25: 0 # right limit switch polarity (normal, see manual)
       140: 8 # maximum microstepping to 256 microsteps (see manual)
       193: 2 # Reference search mode (see manual)
       194: 100000 # Reference search speed (see manual)
       195: 30000 # Reference switch speed (see manual), slow speed for determining exact switching point
+      # 251: 0 # invert axis direction. This can be done now by invert_axis_direction
     velocity: "10 mm/s" # maximum velocity for movement
     acceleration_duration: "0.5 s" # acceleration duration until reaching max speed 
     backlash_direction: 1 # backlash direction (1 or -1)
