@@ -66,6 +66,7 @@ class BoardControl:
         Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
         this is inverted again if the axis direction is inverted. 
         """
+        pass
         axpar=self.boardpar.axes_parameters[axis_index]
         logging.info(f"setting swapped limit switches on board for {axpar.short_id} to {axpar.swap_limit_switches}")
         with self.connection_manager.connect() as myInterface:
@@ -81,6 +82,7 @@ class BoardControl:
         """
         Sets the axis inversion on the board. 
         """
+        pass
         # axpar=self.boardpar.axes_parameters[axis_index]
         logging.info(f"setting axis inversion on board for {axis_index} to {inverted}")
         with self.connection_manager.connect() as myInterface:
