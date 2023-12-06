@@ -19,7 +19,7 @@ from src.configuration_management import ConfigurationManagement
 from .board_parameters import BoardParameters
 from . import ureg
 import logging
-from src.epics_utils import epics_reset_stop_flag, update_epics_motorfields_instance
+from src.epics_utils import epics_reset_stop_flag, update_axpar_from_epics_and_take_action, update_epics_motorfields_instance
 
 async def broadcast_precision_to_fields(record):
     """Update precision of all fields to that of the given record."""
@@ -90,39 +90,39 @@ async def motor_record(instance, async_lib, defaults=None,
 
     while True:
         motion_control.board_control.update_axis_parameters(axis_index)
+        # check if settable values have been changed from EPICS. Takes action if needed
+        await update_axpar_from_epics_and_take_action(axpar, fields, motion_control, axis_index)
+        # this updates particular EPICS pvs for an accurate state of the axis. 
         await update_epics_motorfields_instance(axpar, instance)
+        
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
             # we are not moving
-            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
             await epics_reset_stop_flag(fields)
             await asyncio.sleep(axpar.update_interval_nonmoving)
+            # update axis state:
             motion_control.board_control.update_axis_parameters(axis_index)
+            # check if settable values have been changed from EPICS. Takes action if needed. This is only done when stopped.
+            await update_axpar_from_epics_and_take_action(axpar, fields, motion_control, axis_index)
+            await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
             continue
 
-        # if we are here, we are moving.
-        motion_control.board_control.update_axis_parameters(axis_index)
-        # axpar.target_coordinate=ureg.Quantity(instance.value, axpar.base_realworld_unit) # this is the target position in real-world units
-        await update_epics_motorfields_instance(axpar, instance, 'moving')
-        
-        # print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
-        # # kickoff the move:
-        # await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
-
-        # we should already be moving...
+        # if we are here, we should already be moving.
+        # motion_control.board_control.update_axis_parameters(axis_index)
+        # await update_epics_motorfields_instance(axpar, instance, 'moving')
         # now we await completion
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
         await update_epics_motorfields_instance(axpar, instance, 'moving')
-        print(f"Maybe backlash moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
+        print(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
         await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
         # now we await completion again
         await motion_control.board_control.await_move_completion(axis_index, instance)
-
+        # and then we are done.
         await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
-        have_new_position = False
-        await epics_reset_stop_flag(fields)
+        have_new_position = False # we've finished moving to a new position. 
+        await epics_reset_stop_flag(fields) # reset stop if needed.
 
 
 
