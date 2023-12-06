@@ -12,11 +12,22 @@ class MotionControl:
     def __init__(self, board_control: BoardControl) -> None:
         self.board_control = board_control
 
-    async def check_for_move_interrupt(self, axis_index: int) -> None:
+    async def check_for_move_interrupt(self, axis_index: int, instance:Union[pvproperty, None]=None) -> None:
         """ checks if the move was interrupted by a limit switch or a stop command. """
-        if self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted:
-            self.board_control.boardpar.axes_parameters[axis_index].is_move_interrupted = False
+        axpar = self.board_control.boardpar.axes_parameters[axis_index]
+        if axpar.is_move_interrupted:
             logging.error("Motion was interrupted by a limit switch or a stop command.")
+            if instance is not None:
+                await instance.fields_inst.stop.write(1)
+                await instance.fields_inst.stop_pause_move_go.write('Stop')
+
+        if instance is not None:
+            # check the EPICS values whether we should stop:
+            fields = instance.field_inst
+            if fields.stop.value or fields.stop_pause_move_go.value == 'Stop':
+                logging.error("Motion was interrupted by an EPICS stop command.")
+                axpar.is_move_interrupted = True
+
             
     def user_coordinate_change(self, axis_index_or_name: Union[int, str], new_actual_coordinate: Union[ureg.Quantity, float]) -> None:
         """ 
@@ -100,6 +111,12 @@ class MotionControl:
             logging.error("absolute_or_relative must be 'absolute' or 'relative'.")
         return adjusted_target
 
+    def direct_target_outside_motion_limits(self, axis_params: AxisParameters, direct_target: ureg.Quantity) -> bool:
+        """
+        Check if a direct (backlash-adjusted) target is outside of the motion limits.
+        """
+        return not (axis_params.negative_user_limit <= direct_target <= axis_params.positive_user_limit)
+
     async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute') -> None:
         '''
         Kick off a motion command on the motor stage. This function returns immediately, before the motion is complete. Use await_move_completion to wait for the motion to complete and handle possible movement interrupts.
@@ -114,9 +131,9 @@ class MotionControl:
         absolute_or_relative = absolute_or_relative.lower()
 
         # conversion of the target coordinate to a pint.Quantity
-        if isinstance(target_coordinate, (float, int)):
-            target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
         target_coordinate = quantity_converter(target_coordinate)
+        # if isinstance(target_coordinate, (float, int)):
+        #     target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
 
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
@@ -124,16 +141,16 @@ class MotionControl:
         # Validate target coordinate
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
-        # Check motion limits, taking bidirectional backlash into account
-        if not ((axis_params.negative_user_limit + axis_params.backlash) <= adjusted_target <= (axis_params.positive_user_limit - axis_params.backlash)):
-            logging.error(f"Target position {adjusted_target} is outside of the axis user motion limits: {(axis_params.negative_user_limit + axis_params.backlash)}, {(axis_params.positive_user_limit - axis_params.backlash)}")
-
         # Apply backlash correction if needed
         backlash_needed, adjusted_backlashed_target = self.is_backlash_needed(axis_params, adjusted_target)
-        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
-        # Perform the movement
-        steps = axis_params.real_world_to_steps(adjusted_backlashed_target + axis_params.user_offset)
-        self.board_control.move_axis(axis_index, steps)
+        # Check motion limits, taking bidirectional backlash into account
+        if self.direct_target_outside_motion_limits(axis_params, adjusted_target):
+            logging.error(f"Target position {adjusted_target} is outside of the axis user motion limit: {(axis_params.negative_user_limit)}, {(axis_params.positive_user_limit)} with backlash {axis_params.backlash}.")
+        else:          
+            print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
+            # Perform the movement
+            steps = axis_params.real_world_to_steps(adjusted_backlashed_target + axis_params.user_offset)
+            self.board_control.move_axis(axis_index, steps)
 
     def is_backlash_needed(self, axis_params: AxisParameters, adjusted_target: ureg.Quantity) -> (bool, ureg.Quantity):
         """
@@ -155,9 +172,9 @@ class MotionControl:
         absolute_or_relative = absolute_or_relative.lower()
 
         # conversion of the target coordinate to a pint.Quantity
-        if isinstance(target_coordinate, (float, int)):
-            target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
         target_coordinate = quantity_converter(target_coordinate)
+        # if isinstance(target_coordinate, (float, int)):
+        #     target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
 
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
@@ -172,7 +189,10 @@ class MotionControl:
             backlash_needed = True
 
         print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
-        # apply backlash move if needed
+        # apply backlash move if needed and possible
+        if self.direct_target_outside_motion_limits(axis_params, adjusted_target):
+            logging.error(f"Target position {adjusted_target} is outside of the axis user motion limit: {(axis_params.negative_user_limit)}, {(axis_params.positive_user_limit)} with backlash {axis_params.backlash}.")
+
         if backlash_needed:
             steps = axis_params.real_world_to_steps(adjusted_target + axis_params.user_offset)
             self.board_control.move_axis(axis_index, steps)
@@ -186,15 +206,19 @@ class MotionControl:
         :param absolute_or_relative: 'absolute' for absolute position, 'relative' for relative movement.
         """
         axis_index = self._resolve_axis_index(axis_index_or_name)
-        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
-        # kick-off the move:
+       # kick-off the move, plenty of checks to make sure we're interrupted if needed:
+        await self.check_for_move_interrupt(axis_index, instance)
         self.kickoff_move_to_coordinate(axis_index_or_name, target_coordinate, absolute_or_relative)
         # wait for the move to complete
+        await self.check_for_move_interrupt(axis_index, instance)
         await self.board_control.await_move_completion(axis_index, instance)
-        await self.check_for_move_interrupt(axis_index)
+
+        await self.check_for_move_interrupt(axis_index, instance)
         await self.apply_optional_backlash_move(axis_index_or_name, target_coordinate, absolute_or_relative)
+        await self.check_for_move_interrupt(axis_index, instance)
+
         await self.board_control.await_move_completion(axis_index, instance)
-        await self.check_for_move_interrupt(axis_index)
+        await self.check_for_move_interrupt(axis_index, instance)
 
     def _resolve_axis_index(self, axis: Union[int, str]) -> int:
         if isinstance(axis, str):
