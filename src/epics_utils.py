@@ -53,6 +53,7 @@ async def update_epics_motorfields_instance_nonmoving(axpar: AxisParameters, ins
     await fields.done_moving_to_value.write(1)
     # SPMG not supposed to be set by code.. default Go. 
     # await fields.stop_pause_move_go.write('Stop')
+    logging.info("nonmoving")
     await fields.motor_is_moving.write(0)
 
 async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instance:pvproperty) -> None:
