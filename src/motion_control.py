@@ -31,7 +31,7 @@ class MotionControl:
             
     def user_coordinate_change(self, axis_index_or_name: Union[int, str], new_actual_coordinate: Union[ureg.Quantity, float]) -> None:
         """ 
-        changes the user offset for the specified axis so that the requested value becomes the new actual coordinate.
+        changes the user offset for the specified axis so that the requested value becomes the new_actual_coordinate.
         Parameters:
         axis_index_or_name: Axis index or its short_id.
         new_actual_coordinate: New actual coordinate as a pint.Quantity with unit, or pint-interpretable string. If no unit is supplied (as string or quantity), the base_realworld_unit of the axis is assumed (e.g., mm for linear axes, radian for rotational axes), or steps if no base_realworld_unit is set.

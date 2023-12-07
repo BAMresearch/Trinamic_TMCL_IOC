@@ -12,7 +12,7 @@ axes:
     configurable_parameters:
       # 4: 150000 # maximum positioning speed in microsteps/s
       # 5: 300000 # maximum acceleration in microsteps/s^2
-      6: 80 # motor current, with 255 being 1.9A (see manual)
+      6: 60 # motor current, with 255 being 1.9A (see manual)
       7: 0 # motor standby current, with 255 being 1.9A (see manual)
       # 14: 0 # swap limit switches - this can be done by swap_limit_switches now
       24: 0 # left limit switch polarity (normal, see manual)
@@ -25,7 +25,7 @@ axes:
     velocity: "10 mm/s" # maximum velocity for movement
     acceleration_duration: "0.5 s" # acceleration duration until reaching max speed 
     backlash_direction: 1 # backlash direction (1 or -1)
-    invert_axis_direction: true # invert axis direction
+    invert_axis_direction: true # invert axis direction - true seems normal
     swap_limit_switches: true # swap limit switches (true or false), this value is automatically inverted when inverting axis direction
     steps_to_realworld_conversion_quantity: '25600 steps/mm' # 12345 steps = 1 mm (unit defined in base_realworld_unit)
     base_realworld_unit: "mm" # base unit for realworld units (mm, radian, degree, etc). other quantities must be compatible, e.g. not degrees here and mm for backlash. These base units are also used as display units for the user interface.
