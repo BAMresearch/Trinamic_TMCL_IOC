@@ -38,9 +38,10 @@ Tasks to do include:
   v check the limit switch setting: is the "right" limit switch the negative or positive limit?
   v assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
   - write configuration to state file. 
-  - fix IOC crash when board is powered off - is a PyTrinamics RuntimeError... not sure how. 
+  - fix IOC crash when board does not respond (temporarily) to communication - is a PyTrinamics RuntimeError... not sure how. 
   - check that the board retains settings when powered off -> it doesn't. 
-  - At the moment it's not doing an EPICS-to-axis_parameter sync. Not sure if needed.   
+  - At the moment it's not doing an EPICS-to-axis_parameter sync. Not sure if needed.
+  - check for power cycle and restore on fail
 
 ## License
 

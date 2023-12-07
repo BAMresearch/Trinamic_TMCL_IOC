@@ -12,11 +12,14 @@ from src.epics_utils import update_epics_motorfields_instance
 
 class BoardControl:
     """low-level commands to communicate with the board, addressing basic board funccionalities"""
+    last_board_tick_timer:int = 0
+
     def __init__(self, boardpar:BoardParameters) -> None: # , connection_string:str = "--interface socket_serial_tmcl --port 192.168.0.253:4016 --host-id 3 --module-id 0"):
         connection_string = f"--interface socket_serial_tmcl --port {boardpar.ip_address}:{boardpar.port_number} --host-id 3 --module-id {boardpar.board_module_id}"
         self.connection_manager = ConnectionManager(connection_string)
         self.boardpar = boardpar
-        self.module = boardpar.board_module_id
+        self.module_id = boardpar.board_module_id
+        self.module = None
 
     def initialize_board(self) -> None:
         """
@@ -57,6 +60,18 @@ class BoardControl:
         """
         for axpar in self.boardpar.axes_parameters:
             self.initialize_axis(axpar.axis_number)
+
+    def check_if_powercycle_occurred(self):
+        # check the tick timer and see if its value is lower than the previous one. 
+        with self.connection_manager.connect() as myInterface:
+            self.module = TMCM6214(myInterface)
+            new_board_tick_timer = self.module.get_global_parameter(self.module.GP0.TickTimer, 0, module_id=self.module_id, signed=False):
+        if new_board_tick_timer < self.last_board_tick_timer:
+            raise RuntimeError("Board tick-timer didn't move forwards anymore, probably power reset occurred.")
+        if new_board_tick_timer > 1500000000: # reset, we've only a few days left before it rolls over
+            self.last_board_tick_timer = 0
+            self.module.set_global_parameter(self.module.GP0.TickTimer, 0, 0, module_id=self.module_id)
+        self.last_board_tick_timer = new_board_tick_timer
 
     def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
         """
