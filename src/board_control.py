@@ -67,11 +67,13 @@ class BoardControl:
         logging.info(f"setting swapped limit switches on board for {axpar.short_id} to {axpar.swap_limit_switches}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            # not sure we need to also swap limit switches, but probably...
-            if axpar.invert_axis_direction:
-                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
-            else:
-                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+            # expected behaviour: change direction, swap limits..
+            self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+            # not sure we need to also swap limit switches... nope, gets automatically inverted on axis inversion.
+            # if axpar.invert_axis_direction:
+            #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
+            # else:
+            #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
 
     def set_axis_inversion_on_board(self, axis_index:int) -> None:
         """
@@ -82,7 +84,6 @@ class BoardControl:
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
             self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
-
 
     def set_velocity_in_microsteps_per_second_on_board(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
         """
@@ -169,8 +170,8 @@ class BoardControl:
             await EPICS_fields.stop_pause_move_go.write('Go')
 
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
-        # if instance is not None:
-        #     await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')
+        if instance is not None:
+            await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')
             # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):
