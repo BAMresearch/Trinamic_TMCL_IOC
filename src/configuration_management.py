@@ -1,3 +1,4 @@
+from pathlib import Path
 import yaml
 import attr
 from src.axis_parameters import AxisParameters
@@ -6,7 +7,7 @@ from typing import Any
 
 class ConfigurationManagement:
     @staticmethod
-    def load_configuration(config_file: str, board_parameters: BoardParameters) -> None:
+    def load_configuration(config_file: Path, board_parameters: BoardParameters) -> None:
         """
         Load the configuration from a YAML file and update the BoardParameters instance.
 
@@ -50,7 +51,7 @@ class ConfigurationManagement:
                 setattr(axis_parameters, key, value)
                 
     @staticmethod
-    def save_configuration(config_file: str, board_parameters: BoardParameters) -> None:
+    def save_configuration(config_file: Path, board_parameters: BoardParameters) -> None:
         """
         Save the current state of BoardParameters to a YAML configuration file.
 
