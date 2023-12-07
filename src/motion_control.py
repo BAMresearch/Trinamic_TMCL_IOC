@@ -172,7 +172,7 @@ class MotionControl:
             # do not move. I hope this works. 
             axis_params.is_move_interrupted=True
         else:          
-            print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
+            logging.debug(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
             # Perform the movement
             steps = axis_params.real_world_to_steps(adjusted_backlashed_target + axis_params.user_offset)
             self.board_control.move_axis(axis_index, steps)
@@ -214,7 +214,7 @@ class MotionControl:
         if np.isclose(abs(axis_params.actual_coordinate_RBV - adjusted_target), axis_params.backlash, rtol=0.01):
             backlash_needed = True
 
-        print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
+        logging.debug(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_target}")
         # apply backlash move if needed and possible
         if self.direct_target_outside_motion_limits(axis_params, adjusted_target):
             logging.error(f"Target position {adjusted_target} is outside of the axis user motion limit: {(axis_params.negative_user_limit)}, {(axis_params.positive_user_limit)} with backlash {axis_params.backlash}.")

@@ -1,3 +1,4 @@
+import logging
 import attr
 import pint
 
@@ -69,7 +70,7 @@ class BoardPVGroup(PVGroup):
                 break
             except Exception as e:
                 # Handle other exceptions
-                print(f"Error in periodic_refresh: {e}")
+                logging.error(f"Error in periodic_refresh: {e}")
 
 
 # Example usage

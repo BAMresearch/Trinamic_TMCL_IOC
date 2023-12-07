@@ -163,7 +163,7 @@ async def motor_record(instance, async_lib, defaults=None,
     async def value_write_hook(instance, value):
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
-        print(f"New position {value} requested on axis {axis_index} ")
+        logging.info(f"New position {value} requested on axis {axis_index} ")
         axpar.is_move_interrupted = False # reset interrupt flag
         await motion_control.check_for_move_interrupt(axis_index, instance) # will set the is_move_interrupted flag if there's an EPICS no-go
         if axpar.is_move_interrupted:
@@ -178,7 +178,7 @@ async def motor_record(instance, async_lib, defaults=None,
         motion_control.board_control.update_axis_parameters(axis_index)
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         
-        print(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
+        logging.info(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         # kickoff the move:
         await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
 
@@ -222,7 +222,7 @@ async def motor_record(instance, async_lib, defaults=None,
         while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
             motion_control.do_backlash_move = False # we're backlash moving only once unless we're starting a new move
             await update_epics_motorfields_instance(axpar, instance, 'moving')
-            print(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
+            logging.debug(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
             await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
             # now we await completion again
             await motion_control.board_control.await_move_completion(axis_index, instance)
@@ -273,7 +273,7 @@ class TrinamicMotor(PVGroup):
         
     @motor.startup
     async def motor(self, instance, async_lib) -> None:
-        print(f'Initializing axis {self.axis_index}')
+        logging.ingo(f'Motor instance startup: Initializing axis {self.axis_index}')
         # TODO: uncomment when we're done dev'ing
         self.bc.initialize_axis(self.axis_index)
         # home the axis - this will be improved later to only done on request. 
