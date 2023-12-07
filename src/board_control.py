@@ -101,6 +101,8 @@ class BoardControl:
             self.module = TMCM6214(myInterface)
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
+            # decelerate as quick as acceleration
+            axis.set_axis_parameter(axis.AP.MaxDeceleration, acceleration_in_microsteps_per_second_squared)
 
     def get_end_switch_distance(self, axis_index:int) -> int:
         """
