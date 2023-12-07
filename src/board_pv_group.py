@@ -232,10 +232,10 @@ async def motor_record(instance, async_lib, defaults=None,
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False # we've finished moving to a new position. 
         await epics_reset_stop_flag(fields) # reset stop if needed.
-        # finally, store current state in a file... this produces a rather unstructured yaml file: 
-        path = motion_control.board_control.boardpar.board_configuration_file
-        store_path = path.with_name(path.stem + '_latest_state' + path.suffix)
-        ConfigurationManagement.save_configuration(store_path, motion_control.board_control.boardpar)
+        # # finally, store current state in a file... this produces a rather unstructured yaml file: 
+        # path = motion_control.board_control.boardpar.board_configuration_file
+        # store_path = path.with_name(path.stem + '_latest_state' + path.suffix)
+        # ConfigurationManagement.save_configuration(store_path, motion_control.board_control.boardpar)
 
 
 
