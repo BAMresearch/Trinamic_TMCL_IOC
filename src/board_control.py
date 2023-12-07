@@ -222,11 +222,11 @@ class BoardControl:
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
             axpars.is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
             if axpars.invert_limit_values:
-                # not sure right=negative and left=positive. TODO: needs checking
-                axpars.negative_limit_switch_status_RBV = bool(1-axis.get_axis_parameter(axis.AP.RightEndstop))
-                axpars.positive_limit_switch_status_RBV = bool(1-axis.get_axis_parameter(axis.AP.LeftEndstop))
+                # not sure right=negative and left=positive. TODO: needs checking - nope, reverse. is fixed now. 
+                axpars.negative_limit_switch_status_RBV = bool(1-axis.get_axis_parameter(axis.AP.LeftEndstop))
+                axpars.positive_limit_switch_status_RBV = bool(1-axis.get_axis_parameter(axis.AP.RightEndstop))
             else:
-                axpars.negative_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.RightEndstop))
-                axpars.positive_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.LeftEndstop))
+                axpars.negative_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.LeftEndstop))
+                axpars.positive_limit_switch_status_RBV = bool(axis.get_axis_parameter(axis.AP.RightEndstop))
 
     # Add other necessary motor control functions
