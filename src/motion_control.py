@@ -65,6 +65,8 @@ class MotionControl:
         # indicate the stage is not homed.
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
         axpar.is_homed_RBV = False
+        # haven't started moving yet, so nothing is interrupted yet. 
+        axpar.is_move_interrupted = False
         # home the axis
         logging.info(f"Homing axis {axis_index}...")
         self.board_control.home_axis(axis_index)
@@ -97,7 +99,7 @@ class MotionControl:
         logging.info(f"Axis {axis_index} homing complete.")
         axpar.is_homed_RBV = True # should be finished now. 
 
-    def _prepare_axis_for_motion(self, axis_params: AxisParameters) -> None:
+    def _prepare_axis_for_motion(self, axis_params: AxisParameters, reset_move_interrupt:bool = False) -> None:
         # make sure we have an updated state of the axis:
         self.board_control.update_axis_parameters(axis_params.axis_number)
 
@@ -110,7 +112,13 @@ class MotionControl:
             logging.error("Axis must be stopped before moving.")
 
         if axis_params.is_move_interrupted:
-            logging.error("Axis status cannot be in interrupted state before move.")
+            if reset_move_interrupt:
+                axis_params.is_move_interrupted=False
+                logging.error("Axis status cannot be in interrupted state before move, resetting flag")
+            else:
+                logging.error("Axis status cannot be in interrupted state before move")
+
+
 
     def _calculate_adjusted_target(self, axis_params: AxisParameters, target_coordinate: ureg.Quantity, absolute_or_relative: str = 'absolute') -> ureg.Quantity:
         # if not isinstance(target_coordinate, ureg.Quantity):
@@ -146,13 +154,9 @@ class MotionControl:
         # conversion of the target coordinate to a pint.Quantity
         target_coordinate = quantity_converter(target_coordinate)
 
-        # Prepare the axis for motion
-        self._prepare_axis_for_motion(axis_params)
+        # Prepare the axis for motion, also resets interrupt here since we've not done anything yet. 
+        self._prepare_axis_for_motion(axis_params, reset_move_interrupt = True)
         await self.check_for_move_interrupt(axis_index)
-        if axis_params.is_move_interrupted:
-            # don't do anything else. 
-            logging.info('Move kickoff interrupted.')
-            return
         # Validate target coordinate
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
@@ -190,7 +194,7 @@ class MotionControl:
         target_coordinate = quantity_converter(target_coordinate)
 
         # Prepare the axis for motion
-        self._prepare_axis_for_motion(axis_params)
+        self._prepare_axis_for_motion(axis_params, reset_move_interrupt = False)
         await self.check_for_move_interrupt(axis_index)
         if axis_params.is_move_interrupted:
             # don't do anything else. 
@@ -222,7 +226,8 @@ class MotionControl:
         :param absolute_or_relative: 'absolute' for absolute position, 'relative' for relative movement.
         """
         axis_index = self._resolve_axis_index(axis_index_or_name)
-       # kick-off the move, plenty of checks to make sure we're interrupted if needed:
+
+        # kick-off the move, plenty of checks to make sure we're interrupted if needed:
         await self.check_for_move_interrupt(axis_index, instance)
         self.kickoff_move_to_coordinate(axis_index_or_name, target_coordinate, absolute_or_relative)
         # wait for the move to complete

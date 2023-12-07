@@ -42,6 +42,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     7) the axis direction
     8) the motor step size
     9) a homing operation start (HOMR, HOMF), both will kick off the same home action
+    10) the SPMG flag (Stop-Pause-Move-Go)
     """
     fields: MotorFields = instance.field_inst # get the motor record fields
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
