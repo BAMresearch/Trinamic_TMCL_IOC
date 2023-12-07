@@ -273,7 +273,7 @@ class TrinamicMotor(PVGroup):
         
     @motor.startup
     async def motor(self, instance, async_lib) -> None:
-        logging.ingo(f'Motor instance startup: Initializing axis {self.axis_index}')
+        logging.info(f'Motor instance startup: Initializing axis {self.axis_index}')
         # TODO: uncomment when we're done dev'ing
         self.bc.initialize_axis(self.axis_index)
         # home the axis - this will be improved later to only done on request. 
