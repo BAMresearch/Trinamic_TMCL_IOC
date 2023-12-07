@@ -202,7 +202,7 @@ class MotionControl:
         await self.check_for_move_interrupt(axis_index)
         if axis_params.is_move_interrupted:
             # don't do anything else. 
-            logging.info('Homing interrupted.')
+            logging.info('Backlash move interrupted.')
             return
         # Validate target coordinate
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
