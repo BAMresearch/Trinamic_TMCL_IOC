@@ -105,7 +105,7 @@ class MotionControl:
 
         # ensure that the axis is homed before moving
         if not axis_params.is_homed_RBV:
-            logging.error("Axis must be homed before moving.")
+            logging.warning("Axis should ideally be homed before moving.")
 
         # ensure that the axis is not moving before moving
         if axis_params.is_moving_RBV:

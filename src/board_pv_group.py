@@ -51,18 +51,21 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(axpar.base_realworld_unit).magnitude:
         mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit)
+        logging.info("user offset changed")
         change = True
 
     # 2) check if the user lower limit has been changed from EPICS
     if fields.user_low_limit.value != axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude:
         axpar.negative_user_limit = fields.user_low_limit.value*axpar.base_realworld_unit
         # also update the dial low limit
+        logging.info("negative user limit changed")
         await fields.dial_low_limit.write((axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
         change = True
             
     if fields.dial_low_limit.value != (axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude:
         axpar.negative_user_limit = (fields.dial_low_limit.value*axpar.base_realworld_unit-axpar.user_offset)
         # also update the user low limit
+        logging.info("dial low limit changed")
         await fields.user_low_limit.write(axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude)
         change = True
 
