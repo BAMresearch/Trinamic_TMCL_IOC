@@ -160,6 +160,12 @@ async def motor_record(instance, async_lib, defaults=None,
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
         print(f"New position {value} requested on axis {axis_index} ")
+        axpar.is_move_interrupted = False # reset interrupt flag
+        await motion_control.check_for_move_interrupt(axis_index, instance) # will set the is_move_interrupted flag if there's an EPICS no-go
+        if axpar.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Cannot continue, EPICS STOP and SPMG flags do not allow it.')
+            return
         have_new_position = True
         # TODO: can we actually move directly from here? Looks like no.. maybe just the first bit tho?
         # if we are here, we are moving.

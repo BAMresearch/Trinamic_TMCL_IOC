@@ -17,8 +17,8 @@ class MotionControl:
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
         if axpar.is_move_interrupted:
             logging.error("Motion was interrupted by a limit switch or a stop command.")
-            if instance is not None:
-                await instance.fields_inst.stop.write(1)
+            # if instance is not None:
+            #     await instance.fields_inst.stop.write(1)
                 # await instance.fields_inst.stop_pause_move_go.write('Stop')
 
         if instance is not None:
