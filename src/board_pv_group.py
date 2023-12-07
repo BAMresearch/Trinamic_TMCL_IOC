@@ -169,7 +169,7 @@ async def motor_record(instance, async_lib, defaults=None,
     while True:
         motion_control.board_control.update_axis_parameters(axis_index)
         # check if settable values have been changed from EPICS. Takes action if needed
-        await update_axpar_from_epics_and_take_action(axpar, fields, motion_control, axis_index)
+        await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
         # this updates particular EPICS pvs for an accurate state of the axis. 
         await update_epics_motorfields_instance(axpar, instance)
         
@@ -180,7 +180,7 @@ async def motor_record(instance, async_lib, defaults=None,
             # update axis state:
             motion_control.board_control.update_axis_parameters(axis_index)
             # check if settable values have been changed from EPICS. Takes action if needed. This is only done when stopped.
-            await update_axpar_from_epics_and_take_action(axpar, fields, motion_control, axis_index)
+            await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
             await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
             continue
 

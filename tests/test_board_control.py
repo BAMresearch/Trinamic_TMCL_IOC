@@ -55,7 +55,7 @@ class TestBoardParameters(unittest.TestCase):
         self.assertEqual(board_params.port_number, 4016)
         # Add other assertions for the rest of the attributes
         self.assertEqual(board_params.axes_parameters[0].axis_number, 0)
-        self.assertEqual(board_params.axes_parameters[0].steps_to_realworld_conversion_quantity, ureg('12345 steps/mm'))
+        self.assertEqual(board_params.axes_parameters[0].steps_to_realworld_conversion_quantity, ureg('25600 steps/mm'))
 
 if __name__ == '__main__':
     unittest.main()
