@@ -150,8 +150,8 @@ class BoardControl:
                 # await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
                 if EPICS_fields.stop.value == 1 or EPICS_fields.stop_pause_move_go.value == 'Stop':
                     self.stop_axis(axis_index)
-                    await EPICS_fields.stop.write(1)
-                    await EPICS_fields.stop_pause_move_go.write('Stop')
+                    # await EPICS_fields.stop.write(1)
+                    # await EPICS_fields.stop_pause_move_go.write('Stop')
                     axpar.is_move_interrupted = True
                     logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} and/or {EPICS_fields.stop_pause_move_go.value=}.")
                     break
@@ -166,11 +166,11 @@ class BoardControl:
             # we can reset the stop flag. 
             EPICS_fields = instance.field_inst
             await EPICS_fields.stop.write(0)
-            await EPICS_fields.stop_pause_move_go.write('Go')
+            # await EPICS_fields.stop_pause_move_go.write('Go')
 
         # if we didn't break out of the loop, the motion is complete. in case of imperfect movement, update target position to actual. 
-        if instance is not None:
-            await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')
+        # if instance is not None:
+        #     await update_epics_motorfields_instance(axpar, instance, moving_or_nonmoving='nonmoving')
             # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             
     def stop_axis(self, axis:int):

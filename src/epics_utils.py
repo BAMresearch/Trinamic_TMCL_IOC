@@ -51,7 +51,8 @@ async def update_epics_motorfields_instance_nonmoving(axpar: AxisParameters, ins
     """special fields in addition to update_epics_motorfields_instance to (re)set when the motor stage is not moving"""
     fields: MotorFields = instance.field_inst
     await fields.done_moving_to_value.write(1)
-    await fields.stop_pause_move_go.write('Stop')
+    # SPMG not supposed to be set by code.. default Go. 
+    # await fields.stop_pause_move_go.write('Stop')
     await fields.motor_is_moving.write(0)
 
 async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instance:pvproperty) -> None:
@@ -59,7 +60,7 @@ async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instan
     fields: MotorFields = instance.field_inst
     await fields.raw_desired_value.write(axpar.real_world_to_steps(axpar.target_coordinate+axpar.user_offset))
     await fields.dial_desired_value.write((axpar.target_coordinate+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-    await fields.stop_pause_move_go.write('Go')
+    # await fields.stop_pause_move_go.write('Go')
     await fields.motor_is_moving.write(1)
     await fields.done_moving_to_value.write(0)
     await fields.dial_desired_value.write((axpar.target_coordinate+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)

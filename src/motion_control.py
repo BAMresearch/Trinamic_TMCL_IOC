@@ -19,7 +19,7 @@ class MotionControl:
             logging.error("Motion was interrupted by a limit switch or a stop command.")
             if instance is not None:
                 await instance.fields_inst.stop.write(1)
-                await instance.fields_inst.stop_pause_move_go.write('Stop')
+                # await instance.fields_inst.stop_pause_move_go.write('Stop')
 
         if instance is not None:
             # check the EPICS values whether we should stop:
@@ -71,6 +71,10 @@ class MotionControl:
         # wait for the moves to complete
         await self.board_control.await_move_completion(axis_index)
         await self.check_for_move_interrupt(axis_index)
+        if axpar.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Homing interrupted.')
+            return
         logging.info(f"Axis {axis_index} homed, setting parameters.")
         # set the stage motion range limit to the end switch distance
         range_steps = self.board_control.get_end_switch_distance(axis_index)
@@ -83,6 +87,12 @@ class MotionControl:
         # move out of limit range
         self.board_control.move_axis(axis_index, int(range_steps/2))
         await self.board_control.await_move_completion(axis_index)
+        await self.check_for_move_interrupt(axis_index)
+        if axpar.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Homing interrupted.')
+            return
+
         # indicate the stage is now homed.
         logging.info(f"Axis {axis_index} homing complete.")
         axpar.is_homed_RBV = True # should be finished now. 
@@ -98,6 +108,9 @@ class MotionControl:
         # ensure that the axis is not moving before moving
         if axis_params.is_moving_RBV:
             logging.error("Axis must be stopped before moving.")
+
+        if axis_params.is_move_interrupted:
+            logging.error("Axis status cannot be in interrupted state before move.")
 
     def _calculate_adjusted_target(self, axis_params: AxisParameters, target_coordinate: ureg.Quantity, absolute_or_relative: str = 'absolute') -> ureg.Quantity:
         # if not isinstance(target_coordinate, ureg.Quantity):
@@ -132,12 +145,14 @@ class MotionControl:
 
         # conversion of the target coordinate to a pint.Quantity
         target_coordinate = quantity_converter(target_coordinate)
-        # if isinstance(target_coordinate, (float, int)):
-        #     target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
 
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
-
+        await self.check_for_move_interrupt(axis_index)
+        if axis_params.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Move kickoff interrupted.')
+            return
         # Validate target coordinate
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
@@ -173,13 +188,14 @@ class MotionControl:
 
         # conversion of the target coordinate to a pint.Quantity
         target_coordinate = quantity_converter(target_coordinate)
-        # if isinstance(target_coordinate, (float, int)):
-        #     target_coordinate = ureg.Quantity(target_coordinate, axis_params.base_realworld_unit)
 
         # Prepare the axis for motion
         self._prepare_axis_for_motion(axis_params)
         await self.check_for_move_interrupt(axis_index)
-
+        if axis_params.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Homing interrupted.')
+            return
         # Validate target coordinate
         adjusted_target = self._calculate_adjusted_target(axis_params, target_coordinate, absolute_or_relative)
 
