@@ -103,7 +103,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
         await fields.home_reverse.write(0)
     
     # now we update the board parameters from the axis parameters
-    await bc.update_board_parameters_from_axis_parameters(axis_index)
+    bc.update_board_parameters_from_axis_parameters(axis_index)
 
     await asyncio.sleep(0) # this is needed to allow this to be called as async function
 
