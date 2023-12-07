@@ -67,13 +67,11 @@ class BoardControl:
         logging.info(f"setting swapped limit switches on board for {axpar.short_id} to {axpar.swap_limit_switches}")
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            # expected behaviour: change direction, swap limits..
-            self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
-            # not sure we need to also swap limit switches... nope, gets automatically inverted on axis inversion.
-            # if axpar.invert_axis_direction:
-            #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
-            # else:
-            #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+            # we need to also swap limit switches... 
+            if axpar.invert_axis_direction:
+                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
+            else:
+                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
 
     def set_axis_inversion_on_board(self, axis_index:int) -> None:
         """

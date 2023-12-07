@@ -26,7 +26,7 @@ axes:
     acceleration_duration: "0.5 s" # acceleration duration until reaching max speed 
     backlash_direction: 1 # backlash direction (1 or -1)
     invert_axis_direction: true # invert axis direction - true by default!
-    swap_limit_switches: false # swap limit switches (true or false (default)). limit switches are automatically swapped when axis direction is inverted
+    swap_limit_switches: true # swap limit switches (true or false). limit switches are automatically swapped when axis direction is inverted
     steps_to_realworld_conversion_quantity: '25600 steps/mm' # 12345 steps = 1 mm (unit defined in base_realworld_unit)
     base_realworld_unit: "mm" # base unit for realworld units (mm, radian, degree, etc). other quantities must be compatible, e.g. not degrees here and mm for backlash. These base units are also used as display units for the user interface.
     backlash: "1 mm" # backlash amount. You need to reduce your positive and negative limits proportionately.
