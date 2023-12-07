@@ -46,64 +46,78 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     fields: MotorFields = instance.field_inst # get the motor record fields
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
+    change = False
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(axpar.base_realworld_unit).magnitude:
         mc.user_coordinate_changed(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit)
+        change = True
 
     # 2) check if the user lower limit has been changed from EPICS
     if fields.user_low_limit.value != axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude:
         axpar.negative_user_limit = fields.user_low_limit.value*axpar.base_realworld_unit
         # also update the dial low limit
         await fields.dial_low_limit.write((axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-    
+        change = True
+            
     if fields.dial_low_limit.value != (axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude:
         axpar.negative_user_limit = (fields.dial_low_limit.value*axpar.base_realworld_unit-axpar.user_offset)
         # also update the user low limit
         await fields.user_low_limit.write(axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude)
+        change = True
 
     # 3) check if the user upper limit has been changed from EPICS
     if fields.user_high_limit.value != axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude:
         axpar.positive_user_limit = fields.user_high_limit.value*axpar.base_realworld_unit
         # also update the dial high limit
         await fields.dial_high_limit.write((axpar.positive_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
+        change = True
     
     if fields.dial_high_limit.value != (axpar.positive_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude:
         axpar.positive_user_limit = (fields.dial_high_limit.value*axpar.base_realworld_unit-axpar.user_offset)
         # also update the user high limit
         await fields.user_high_limit.write(axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude)
+        change = True
     
     # 4) check if the velocity has been changed from EPICS
     if fields.velocity.value != axpar.velocity.to(axpar.base_realworld_unit/ureg.s).magnitude:
         axpar.velocity = fields.velocity.value*axpar.base_realworld_unit/ureg.s
+        change = True
 
     # 5) check if the acceleration duration has been changed from EPICS
     if fields.seconds_to_velocity.value != axpar.acceleration_duration.to(ureg.s).magnitude:
         axpar.acceleration_duration = fields.seconds_to_velocity.value*ureg.s
+        change = True
     
     # 6) check if the backlash distance has been changed from EPICS
     if fields.bl_distance.value != axpar.backlash.to(axpar.base_realworld_unit).magnitude:
         axpar.backlash = fields.bl_distance.value*axpar.base_realworld_unit
+        change = True
     
     # 7) check if the axis direction has been changed from EPICS
     if fields.user_direction.value == 'Neg' and not axpar.invert_axis_direction:
         logging.info(f"Inverting axis direction for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = True
+        change = True
     elif fields.user_direction.value == 'Pos' and axpar.invert_axis_direction:
         logging.info(f"Uninverting axis directionn (i.e. normal direction) for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = False
+        change = True
     
     # 8) check if the motor step size has been changed from EPICS
     if fields.motor_step_size.value != 1./(axpar.steps_to_realworld_conversion_quantity.to(ureg.Unit('steps')/axpar.base_realworld_unit).magnitude):
         axpar.steps_to_realworld_conversion_quantity = 1./(fields.motor_step_size.value*ureg.Unit('steps')/axpar.base_realworld_unit)
+        change = True
 
     # 9) check if a homing operation has been started from EPICS
     if fields.home_forward.value == 1 or fields.home_reverse.value == 1: # or both? but that would be weird.
         await mc.home_await_and_set_limits(axis_index)
         await fields.home_forward.write(0)
         await fields.home_reverse.write(0)
+        change = True
     
-    # now we update the board parameters from the axis parameters
-    bc.update_board_parameters_from_axis_parameters(axis_index)
+    # now we update the board parameters from the axis parameters if there was a change
+    if change:
+        bc.update_board_parameters_from_axis_parameters(axis_index)
 
     await asyncio.sleep(0) # this is needed to allow this to be called as async function
 
