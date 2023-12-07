@@ -65,12 +65,12 @@ class BoardControl:
         # check the tick timer and see if its value is lower than the previous one. 
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
-            new_board_tick_timer = self.module.get_global_parameter(self.module.GP0.TickTimer, 0, module_id=self.module_id, signed=False)
+            new_board_tick_timer = self.module.get_global_parameter(self.module.GP0.TickTimer, 0)
         if new_board_tick_timer < self.last_board_tick_timer:
             raise RuntimeError("Board tick-timer didn't move forwards anymore, probably power reset occurred.")
         if new_board_tick_timer > 1500000000: # reset, we've only a few days left before it rolls over
             self.last_board_tick_timer = 0
-            self.module.set_global_parameter(self.module.GP0.TickTimer, 0, 0, module_id=self.module_id)
+            self.module.set_global_parameter(self.module.GP0.TickTimer, 0, 0)
         self.last_board_tick_timer = new_board_tick_timer
 
     def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
