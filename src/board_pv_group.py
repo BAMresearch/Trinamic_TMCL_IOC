@@ -216,7 +216,7 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
-        while motion_control.do_backlash_move:
+        while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
             motion_control.do_backlash_move = False # we're backlash moving only once unless we're starting a new move
             await update_epics_motorfields_instance(axpar, instance, 'moving')
             print(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
