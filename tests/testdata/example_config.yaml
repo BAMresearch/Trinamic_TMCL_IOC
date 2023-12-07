@@ -14,6 +14,8 @@ axes:
       # 5: 300000 # maximum acceleration in microsteps/s^2
       6: 60 # motor current, with 255 being 1.9A (see manual)
       7: 0 # motor standby current, with 255 being 1.9A (see manual)
+      12: 0 # limit switch enabled
+      13: 0 # limit switch enabled
       # 14: 0 # swap limit switches - this can be done by swap_limit_switches now
       24: 0 # left limit switch polarity (normal, see manual)
       25: 0 # right limit switch polarity (normal, see manual)
