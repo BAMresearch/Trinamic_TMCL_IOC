@@ -26,6 +26,8 @@ class ConfigurationManagement:
         Sets the board parameters based on the board_config dict loaded from the YAML file.
         """
         for key, value in board_config.items():
+            if key=='board_configuration_file':
+                continue # don't load this one
             if hasattr(board_parameters, key):
                 setattr(board_parameters, key, value)
 
