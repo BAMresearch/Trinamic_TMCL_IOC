@@ -1,4 +1,5 @@
 
+from pathlib import Path
 import attr
 from typing import Dict
 from src.axis_parameters import AxisParameters
@@ -24,6 +25,9 @@ class BoardParameters:
     """
     Some basic configuration parameters pertaining to the board. This contains the axes parameters for this board as well.
     """
+    # configuration file
+    board_configuration_file: Path = attr.field(factory=Path, default = 'tmp.yaml')
+
     # Board-level configurable parameters
     board_configurable_parameters: Dict[int, int] = attr.field(factory=dict)
 

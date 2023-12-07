@@ -295,7 +295,7 @@ class TrinamicIOC(PVGroup):
         # this does execute...
 
         super().__init__(*args, **kwargs)
-        self.boardpar = BoardParameters()
+        self.boardpar = BoardParameters(board_configuration_file=config_file)
         ConfigurationManagement.load_configuration(config_file, self.boardpar)
         self.bc = BoardControl(self.boardpar) # low-level comm
         self.mc = MotionControl(self.bc) # high-level motions
