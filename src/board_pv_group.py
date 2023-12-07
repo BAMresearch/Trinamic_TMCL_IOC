@@ -170,6 +170,7 @@ async def motor_record(instance, async_lib, defaults=None,
             logging.info('Cannot continue, EPICS STOP and SPMG flags do not allow it.')
             return
         have_new_position = True
+        motion_control.do_backlash_move = True # make sure we check that a backlash move is done even if re-moving during a backlash
         # TODO: can we actually move directly from here? Looks like no.. maybe just the first bit tho?
         # if we are here, we are moving.
         axpar.target_coordinate=ureg.Quantity(value, axpar.base_realworld_unit) # this is the target position in real-world units
@@ -215,11 +216,14 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
-        await update_epics_motorfields_instance(axpar, instance, 'moving')
-        print(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
-        await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
-        # now we await completion again
-        await motion_control.board_control.await_move_completion(axis_index, instance)
+        while motion_control.do_backlash_move:
+            motion_control.do_backlash_move = False # we're backlash moving only once unless we're starting a new move
+            await update_epics_motorfields_instance(axpar, instance, 'moving')
+            print(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
+            await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
+            # now we await completion again
+            await motion_control.board_control.await_move_completion(axis_index, instance)
+
         # and then we are done.
         await update_epics_motorfields_instance(axpar, instance, 'nonmoving')
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)

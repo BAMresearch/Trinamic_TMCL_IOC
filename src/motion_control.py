@@ -9,6 +9,8 @@ from caproto.server.records import pvproperty
 
 class MotionControl:
     """high-level interface for controlling motion of the motors"""
+    do_backlash_move:bool=False # parameter set true at the start of every new move. Only reset once the backlash is successfully completed. This resolves an issue when moving anew during a prior backlash move.
+
     def __init__(self, board_control: BoardControl) -> None:
         self.board_control = board_control
 

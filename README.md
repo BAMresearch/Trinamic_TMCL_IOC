@@ -32,10 +32,15 @@ Tasks to do include:
   v make a method that allows us to update the offset value. This should perhaps adjust the user limits too...
   v make a convenience method that allows us to set the current position to zero user value
   v make a method that starts a home action when HOMF or HOMR is set to 1. 
-  e enable and test axis inversion (parameter 251 on Trinamics boards) (enabled, not testd yet)
-  - tie the above together with a neat bow. 
-  - assure the axis does not move if we try a move beyond limits. 
-  - check the limit switch setting: is the "right" limit switch the negative or positive limit?
+  v enable and test axis inversion (parameter 251 on Trinamics boards) (enabled, not testd yet)
+  v tie the above together with a neat bow. 
+  v assure the axis does not move if we try a move beyond limits. 
+  v check the limit switch setting: is the "right" limit switch the negative or positive limit?
+  - assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
+  - write configuration
+  - fix IOC crash when board is powered off
+  - check that the board retains settings when powered off
+  
 
 ## License
 
