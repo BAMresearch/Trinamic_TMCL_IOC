@@ -38,7 +38,7 @@ Tasks to do include:
   v check the limit switch setting: is the "right" limit switch the negative or positive limit?
   - assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
   - write configuration
-  - fix IOC crash when board is powered off
+  - fix IOC crash when board is powered off - is a PyTrinamics RuntimeError... not sure how. 
   - check that the board retains settings when powered off
   
 
