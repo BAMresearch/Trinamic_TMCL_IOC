@@ -61,7 +61,7 @@ class BoardControl:
         for axpar in self.boardpar.axes_parameters:
             self.initialize_axis(axpar.axis_number)
 
-    def check_if_powercycle_occurred(self):
+    async def check_if_powercycle_occurred(self) -> None:
         # check the tick timer and see if its value is lower than the previous one. 
         with self.connection_manager.connect() as myInterface:
             self.module = TMCM6214(myInterface)
