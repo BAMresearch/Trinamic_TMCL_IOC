@@ -165,6 +165,8 @@ class MotionControl:
         # Check motion limits, taking bidirectional backlash into account
         if self.direct_target_outside_motion_limits(axis_params, adjusted_target):
             logging.error(f"Target position {adjusted_target} is outside of the axis user motion limit: {(axis_params.negative_user_limit)}, {(axis_params.positive_user_limit)} with backlash {axis_params.backlash}.")
+            # do not move. I hope this works. 
+            axis_params.is_move_interrupted=True
         else:          
             print(f"backlash_needed={backlash_needed}, adjusted_backlashed_target={adjusted_backlashed_target}")
             # Perform the movement
