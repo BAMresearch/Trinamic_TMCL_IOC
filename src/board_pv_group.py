@@ -44,7 +44,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     9) a homing operation start (HOMR, HOMF), both will kick off the same home action
     """
     fields: MotorFields = instance.field_inst # get the motor record fields
-    axpar = mc.board_control.board_params.axes_parameters[axis_index] # get the axis parameters for this axis
+    axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(axpar.base_realworld_unit).magnitude:
