@@ -50,7 +50,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     change = False
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(axpar.base_realworld_unit).magnitude:
-        mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit)
+        mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit, adjust_user_limits=False)
         logging.info("user offset changed")
         change = True
 
