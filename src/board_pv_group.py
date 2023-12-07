@@ -202,10 +202,6 @@ async def motor_record(instance, async_lib, defaults=None,
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
             # we are not moving
             await epics_reset_stop_flag(fields)
-            # store current state in a file: 
-            path = motion_control.board_control.boardpar.board_configuration_file
-            store_path = path.with_name(path.stem + '_latest_state' + path.suffix)
-            ConfigurationManagement.save_configuration(store_path, motion_control.board_control.boardpar)
             await asyncio.sleep(axpar.update_interval_nonmoving)
             await motion_control.board_control.check_if_powercycle_occurred()
             # update axis state:
@@ -236,6 +232,11 @@ async def motor_record(instance, async_lib, defaults=None,
         # await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
         have_new_position = False # we've finished moving to a new position. 
         await epics_reset_stop_flag(fields) # reset stop if needed.
+        # finally, store current state in a file... this produces a rather unstructured yaml file: 
+        path = motion_control.board_control.boardpar.board_configuration_file
+        store_path = path.with_name(path.stem + '_latest_state' + path.suffix)
+        ConfigurationManagement.save_configuration(store_path, motion_control.board_control.boardpar)
+
 
 
 

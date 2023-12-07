@@ -37,7 +37,7 @@ Tasks to do include:
   v assure the axis does not move if we try a move beyond limits. 
   v check the limit switch setting: is the "right" limit switch the negative or positive limit?
   v assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
-  - write configuration to state file. 
+  m write configuration to state file. this needs some extra work to make the output a bit more useful. 
   - fix IOC crash when board does not respond (temporarily) to communication - is a PyTrinamics RuntimeError... not sure how. 
   - check that the board retains settings when powered off -> it doesn't. 
   - At the moment it's not doing an EPICS-to-axis_parameter sync. Not sure if needed.
