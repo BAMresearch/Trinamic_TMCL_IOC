@@ -161,6 +161,23 @@ async def motor_record(instance, async_lib, defaults=None,
     have_new_position = False
 
     async def value_write_hook(instance, value):
+        """
+        A couple things we will do here: 
+        1) calculate adjusted_target with optional backlash
+        2) check if adjusted_target is within limits otherwise is_move_interrupted
+        3) check if we can move otherwise set is_move_interrupted
+        4) kickoff move, set as moving
+        5) return to main loop for the following:
+        6) await motion complete
+        7) while not within one step of original target (np.isclose(a,b, atol=1.5), and not is_move_interrupted)
+        8) check if original target is within limits otherwise is_move_interrupted
+        9) check if we can move otherwise set is_move_interrupted
+        8) kickoff movement to original target
+        9) await move (and end while)
+        10) move complete
+        """
+
+
         nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
         logging.info(f"New position {value} requested on axis {axis_index} ")
