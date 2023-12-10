@@ -119,7 +119,9 @@ class MotionControl:
         backlash_needed = axis_params.backlash_direction * (adjusted_target - axis_params.actual_coordinate_RBV).magnitude > 0
         if backlash_needed:
             adjusted_backlashed_target = adjusted_target + axis_params.backlash * axis_params.backlash_direction
-        return adjusted_backlashed_target
+            return adjusted_backlashed_target
+        else:
+            return adjusted_target
 
     def reset_move_interrupt(self, axis_params:AxisParameters):
         if axis_params.is_move_interrupted:
