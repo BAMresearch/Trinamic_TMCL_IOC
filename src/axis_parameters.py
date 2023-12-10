@@ -95,7 +95,6 @@ class AxisParameters:
         """
         if velocity is None:
             velocity = self.velocity
-            print(f'{velocity=}')
         else: 
             velocity = quantity_converter(velocity, target_unit = self.base_realworld_unit/ureg.s)
         if not velocity.dimensionality == (self.base_realworld_unit/ureg.s).dimensionality:

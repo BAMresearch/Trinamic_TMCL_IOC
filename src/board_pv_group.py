@@ -114,7 +114,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
 
     # 9) check if a homing operation has been started from EPICS
     if fields.home_forward.value == 1 or fields.home_reverse.value == 1: # or both? but that would be weird.
-        await mc.home_await_and_set_limits(axis_index)
+        await mc.home_await_and_set_limits(axis_index, EPICS_fields_instance=instance)
         await fields.home_forward.write(0)
         await fields.home_reverse.write(0)
         change = True

@@ -59,19 +59,26 @@ class MotionControl:
         delta = axis_params.actual_coordinate_RBV
         self.user_coordinate_change_by_delta(axis_index, delta)
     
-    async def home_await_and_set_limits(self, axis_index: int) -> None:
+    async def home_await_and_set_limits(self, axis_index: int, EPICS_fields_instance:Union[pvproperty, None]=None) -> None:
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
         # indicate the stage is not homed.
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
         axpar.is_homed_RBV = False
         # haven't started moving yet, so nothing is interrupted yet. 
         axpar.is_move_interrupted = False
-        # home the axis
+        # check if we should move
+        await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
+        if axpar.is_move_interrupted:
+            # don't do anything else. 
+            logging.info('Homing interrupted.')
+            return
+        
+        # good to go, home the axis
         logging.info(f"Homing axis {axis_index}...")
         self.board_control.home_axis(axis_index)
         # wait for the moves to complete
-        await self.board_control.await_move_completion(axis_index)
-        await self.check_for_move_interrupt(axis_index)
+        await self.board_control.await_move_completion(axis_index, instance=EPICS_fields_instance)
+        await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
         if axpar.is_move_interrupted:
             # don't do anything else. 
             logging.info('Homing interrupted.')
@@ -87,8 +94,8 @@ class MotionControl:
         logging.info(f"Axis {axis_index} homed, stage motion range set to {range_realworld}. Moving to center of range.")
         # move out of limit range
         self.board_control.move_axis(axis_index, int(range_steps/2))
-        await self.board_control.await_move_completion(axis_index)
-        await self.check_for_move_interrupt(axis_index)
+        await self.board_control.await_move_completion(axis_index, instance=EPICS_fields_instance)
+        await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
         if axpar.is_move_interrupted:
             # don't do anything else. 
             logging.info('Homing interrupted.')
