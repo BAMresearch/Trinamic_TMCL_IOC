@@ -163,47 +163,40 @@ async def motor_record(instance, async_lib, defaults=None,
     async def value_write_hook(instance, value):
         """
         A couple things we will do here: 
-        1) calculate adjusted_target with optional backlash
-        2) check if adjusted_target is within limits otherwise is_move_interrupted
-        3) check if we can move otherwise set is_move_interrupted
-        4) kickoff move, set as moving
+        1) reset is_move_interrupted (e.g. using motion_control.reset_move_interrupt)
+        4) kickoff move, set as moving. In kickoff, we want to do:
+            1) calculate adjusted_target with optional backlash (flag option)
+            2) check if adjusted_target is within limits otherwise is_move_interrupted
+            3) check if we can move otherwise set is_move_interrupted
         5) return to main loop for the following:
         6) await motion complete
         7) while not within one step of original target (np.isclose(a,b, atol=1.5), and not is_move_interrupted)
-        8) check if original target is within limits otherwise is_move_interrupted
-        9) check if we can move otherwise set is_move_interrupted
-        8) kickoff movement to original target
+        8) kickoff movement to original target. Same method as above:
+            1) calculate adjusted target (nothing adjusted here)
+            8) check if original target is within limits otherwise is_move_interrupted
+            9) check if we can move otherwise set is_move_interrupted
         9) await move (and end while)
         10) move complete
         """
-
-
-        nonlocal have_new_position
         # This happens when a user puts to `motor.VAL`
-        logging.info(f"New position {value} requested on axis {axis_index} ")
-        axpar.is_move_interrupted = False # reset interrupt flag
-        await motion_control.check_for_move_interrupt(axis_index, instance) # will set the is_move_interrupted flag if there's an EPICS no-go
-        if axpar.is_move_interrupted:
-            # don't do anything else. 
-            logging.info('Cannot continue, EPICS STOP and SPMG flags do not allow it.')
-            return
+        motion_control.reset_move_interrupt(axpar) # nothing special, just resets the flag. We only want to do this at the very start of a new move
+        nonlocal have_new_position
         have_new_position = True
-        motion_control.do_backlash_move = True # make sure we check that a backlash move is done even if re-moving during a backlash
-        # TODO: can we actually move directly from here? Looks like no.. maybe just the first bit tho?
-        # if we are here, we are moving.
+        # turn the requested value into a quantity:
         axpar.target_coordinate=ureg.Quantity(value, axpar.base_realworld_unit) # this is the target position in real-world units
+        # update parameters in both directions:
         motion_control.board_control.update_axis_parameters(axis_index)
         await update_epics_motorfields_instance(axpar, instance, 'moving')
-        
         logging.info(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         # kickoff the move:
-        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
+        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute', include_backlash_when_required=True, EPICS_fields_instance=instance)
+        # now we return to the main loop, wherever we might be...
 
     fields.value_write_hook = value_write_hook
 
     await instance.write_metadata(precision=defaults['precision'])
     await broadcast_precision_to_fields(instance)
-
+    # not sure we still need these .. they'll be overwritten in the sync anyway...
     await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
@@ -236,11 +229,11 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
-        while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
-            motion_control.do_backlash_move = False # we're backlash moving only once unless we're starting a new move
+        # while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
+        while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted):
             await update_epics_motorfields_instance(axpar, instance, 'moving')
-            logging.debug(f"Backlash moving if needed from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
-            await motion_control.apply_optional_backlash_move(axis_index, axpar.target_coordinate, absolute_or_relative='absolute')
+            logging.debug(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
+            await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute', include_backlash_when_required=False, EPICS_fields_instance=instance)
             # now we await completion again
             await motion_control.board_control.await_move_completion(axis_index, instance)
 
