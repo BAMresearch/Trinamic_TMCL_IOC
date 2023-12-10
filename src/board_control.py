@@ -147,8 +147,8 @@ class BoardControl:
         """
         Waits until the motor on the given axis has completed its motion. Updates the axis parameters and the EPICS fields.
         """
-
-        self.update_axis_parameters(axis_index)
+        # avoiding unnecessary calls to update_axis_parameters, commenting out:
+        # self.update_axis_parameters(axis_index)
         axpar = self.boardpar.axes_parameters[axis_index]
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
         if instance is not None:

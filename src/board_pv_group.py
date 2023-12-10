@@ -200,15 +200,14 @@ async def motor_record(instance, async_lib, defaults=None,
     await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
+    motion_control.board_control.update_axis_parameters(axis_index)
+    # check if settable values have been changed from EPICS. Takes action if needed
+    await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
+    # this updates particular EPICS pvs for an accurate state of the axis. 
     await update_epics_motorfields_instance(axpar, instance, '') # initial update of the EPICS fields. from this point on we can sync
 
     while True:
-        motion_control.board_control.update_axis_parameters(axis_index)
-        # check if settable values have been changed from EPICS. Takes action if needed
-        await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
-        # this updates particular EPICS pvs for an accurate state of the axis. 
-        await update_epics_motorfields_instance(axpar, instance)
-        
+                
         if not motion_control.board_control.check_if_moving(axis_index) and not have_new_position:
             # we are not moving
             await epics_reset_stop_flag(fields)
