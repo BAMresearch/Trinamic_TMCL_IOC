@@ -159,24 +159,12 @@ async def motor_record(instance, async_lib, defaults=None,
 
     fields: MotorFields = instance.field_inst
     have_new_position = False
+    motion_control.board_control.update_axis_parameters(axis_index)
+
 
     async def value_write_hook(instance, value):
         """
-        A couple things we will do here: 
-        1) reset is_move_interrupted (e.g. using motion_control.reset_move_interrupt)
-        4) kickoff move, set as moving. In kickoff, we want to do:
-            1) calculate adjusted_target with optional backlash (flag option)
-            2) check if adjusted_target is within limits otherwise is_move_interrupted
-            3) check if we can move otherwise set is_move_interrupted
-        5) return to main loop for the following:
-        6) await motion complete
-        7) while not within one step of original target (np.isclose(a,b, atol=1.5), and not is_move_interrupted)
-        8) kickoff movement to original target. Same method as above:
-            1) calculate adjusted target (nothing adjusted here)
-            8) check if original target is within limits otherwise is_move_interrupted
-            9) check if we can move otherwise set is_move_interrupted
-        9) await move (and end while)
-        10) move complete
+        Runs when a new value is set. 
         """
         # This happens when a user puts to `motor.VAL`
         motion_control.reset_move_interrupt(axpar) # nothing special, just resets the flag. We only want to do this at the very start of a new move
@@ -197,10 +185,10 @@ async def motor_record(instance, async_lib, defaults=None,
     await instance.write_metadata(precision=defaults['precision'])
     await broadcast_precision_to_fields(instance)
     # not sure we still need these .. they'll be overwritten in the sync anyway...
-    await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
-    await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
-    await update_epics_motorfields_instance(axpar, instance, '') # initial update of the EPICS fields. from this point on we can sync
+    # await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
+    # await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
+    # await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
+    await update_epics_motorfields_instance(axpar, instance) # initial update of the EPICS fields. from this point on we can sync
 
     while True:
         motion_control.board_control.update_axis_parameters(axis_index)
