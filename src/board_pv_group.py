@@ -177,7 +177,7 @@ async def motor_record(instance, async_lib, defaults=None,
         await update_epics_motorfields_instance(axpar, instance, 'moving')
         logging.info(f"Moving to {axpar.target_coordinate} on axis {axis_index} from {axpar.actual_coordinate_RBV}")
         # kickoff the move:
-        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute', include_backlash_when_required=True, EPICS_fields_instance=instance)
+        await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, include_backlash_when_required=True, EPICS_fields_instance=instance)
         # now we return to the main loop, wherever we might be...
 
     fields.value_write_hook = value_write_hook
@@ -221,7 +221,7 @@ async def motor_record(instance, async_lib, defaults=None,
         while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted):
             await update_epics_motorfields_instance(axpar, instance, 'moving')
             logging.debug(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
-            await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, absolute_or_relative='absolute', include_backlash_when_required=False, EPICS_fields_instance=instance)
+            await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, include_backlash_when_required=False, EPICS_fields_instance=instance)
             # now we await completion again
             await motion_control.board_control.await_move_completion(axis_index, instance)
 
