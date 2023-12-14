@@ -39,6 +39,33 @@ class MotionControl:
         delta = new_actual_coordinate - axis_params.actual_coordinate_RBV
         self.user_coordinate_change_by_delta(axis_index, delta)
 
+    def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str):
+        """
+        When the "SET" field is 'Set' (not 'Use'), we have to update the links between the user, dial, and raw settings, as well as the high and low limits without moving the motor.
+        This is used for calibration between the user and dial positions. Details in the EPICS motor record definition for the calibration-related fields. 
+        Its behaviour is different depending whether "FOFF" (Fix Offset) is on or off.
+        This is the method for setting when FOFF is not Fixed but Variable.
+        This method is expected to be called from board_pv_group.py: update_axpar_from_epics_and_take_action. For "VAL", this is called from the interrupt callback.
+        changed_field must be one of: "VAL", "DVAL" or "RVAL"
+        """
+        fields = EPICS_motorfields_instance.field_inst
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
+        assert fields.set_use_switch == 'Set', 'SET switch must be "Set" to use the coordinate_change_through_epics_set_no_foff method'
+        assert fields.offset_freeze_switch == 'Variable', 'FOFF switch must be "Variable" to use the coordinate_change_through_epics_set_no_foff method'
+        # find out which field has changed:
+        if changed_field == "VAL":
+            # change offset so that the current VAL is equal to the requested VAL. we can use user_coordinate_change_by_Delta for this. 
+            self.user_coordinate_change(axis_index, ureg.Quantity(fields.VAL, fields.EGU))
+            return # things might go squiffy if we now also do the below...
+        elif changed_field == "DVAL": 
+            # update RVAL without moving. Also change the offset so VAL stays the same. 
+            Delta = axis_params.dial_to_user(ureg.Quantity(fields.DVAL, fields.EGU)) - axis_params.actual_coordinate_RBV
+            pass
+        elif changed_field == "RVAL":
+            # update DVAL, then the offset so VAL stays the same. 
+            pass 
+
     def user_coordinate_change_by_delta(self, axis_index_or_name: Union[int, str], delta: Union[ureg.Quantity, float], adjust_user_limits:bool=True) -> None:
         """Changes the user coordinate by adjustment of the offset. For EPICS-dictated changes, adjust_user_limits should be set to False, as EPICS already updates the lower limit..."""
         axis_index = self._resolve_axis_index(axis_index_or_name)

@@ -86,6 +86,12 @@ class AxisParameters:
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric
     description: str = attr.field(default="TMCM-6214 Axis") # description of the axis
 
+    @property
+    def direction(self) -> int:
+        """Returns +/- 1 depending on whether the axis direction is positive (normal) or negative (inverted)"""
+        if self.invert_axis_direction: return int(-1)
+        else: return int(1)
+
     def velocity_in_microsteps_per_second(self, velocity:ureg.Quantity=None, as_quantity:bool=False) -> Union[int, ureg.Quantity]:
         """
         Convert velocity to microsteps per second.
@@ -116,6 +122,37 @@ class AxisParameters:
             logging.warning(f"incompatible units {acceleration_duration.units} in acceleration_duration_in_microsteps_per_second_squared")
         return int((self.velocity_in_microsteps_per_second(as_quantity=True) / self.acceleration_duration).to('steps/s**2').magnitude)
 
+    def user_to_dial(self, userCoordinate:ureg.Quantity) -> ureg.Quantity:
+        """ 
+        Returns dial coordinates for provided user coordinates in the same unit as provided. 
+        uses the EPICS definition: (fixes https://github.com/BAMresearch/Trinamic_TMCM6214_TMCL_IOC/issues/2)
+        userVAL = DialVAL * DIRection + OFFset
+        """
+        return ((userCoordinate - self.user_offset) / self.direction ).to(userCoordinate.units)
+    
+    def dial_to_raw(self, dialCoordinate:ureg.Quantity) -> ureg.Quantity:
+        """
+        returns raw steps for a given dial coordinate. uses the motor resolution to translate
+        """
+        return self.real_world_to_steps(dialCoordinate)
+
+    def raw_to_dial(self, rawCoordinate:Union[int, ureg.Quantity]) -> ureg.Quantity:
+        """
+        returns the dial coordinate matching a raw position in steps. 
+        """
+        if isinstance(rawCoordinate, ureg.Quantity):
+            assert rawCoordinate.is_compatible_with('steps'), 'quantity provided to raw_to_dial must have unit of steps'
+            rawCoordinate=rawCoordinate.magnitude
+        return self.steps_to_real_world(rawCoordinate)
+    
+    def dial_to_user(self, dialCoordinate:ureg.Quantity) -> ureg.Quantity:
+        """
+        returns the user coordinates for given dial coordinates, in the same unit as provided. 
+        uses the EPICS definition: (fixes https://github.com/BAMresearch/Trinamic_TMCM6214_TMCL_IOC/issues/2)
+        userVAL = DialVAL * DIRection + OFFset
+        """
+        return (dialCoordinate * self.direction + self.user_offset).to(dialCoordinate.units)
+
     def set_actual_coordinate_RBV_by_steps(self, steps: int):
         """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
         self.actual_coordinate_RBV = self.steps_to_real_world(steps) - self.user_offset
@@ -145,3 +182,4 @@ class AxisParameters:
         if not result.is_compatible_with('steps'):
             logging.error(f"Conversion of {distance_or_angle} to steps failed. Problem in conversion quantity or base realworld unit.")
         return int(result.magnitude)
+    

@@ -5,7 +5,8 @@ from src.axis_parameters import AxisParameters
 from src.board_parameters import BoardParameters
 import pytrinamic
 from pytrinamic.connections import ConnectionManager
-from pytrinamic.modules import TMCM6214
+# module already loaded in board_params.pytrinamic_module
+# from pytrinamic.modules import TMCM6214 
 from caproto.server.records import MotorFields, pvproperty
 
 from src.epics_utils import update_epics_motorfields_instance
@@ -26,7 +27,7 @@ class BoardControl:
         Initializes the board with the parameters from the BoardParameters instance. Sets the global parameters on the board.
         """
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             for key, value in self.boardpar.board_configurable_parameters.items():
                 logging.info(f"setting board {key=} {value=}")
                 self.module.set_global_parameter(key, 0, value) # these are automatically stored
@@ -37,7 +38,7 @@ class BoardControl:
         """
         axpar=self.boardpar.axes_parameters[axis_index]
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             for key, value in axpar.configurable_parameters.items():
                 logging.info(f"setting {axis_index=} {key=} {value=}")
                 self.module.set_axis_parameter(key, axis_index, value)
@@ -64,7 +65,7 @@ class BoardControl:
     async def check_if_powercycle_occurred(self) -> None:
         # check the tick timer and see if its value is lower than the previous one. 
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             new_board_tick_timer = self.module.get_global_parameter(self.module.GP0.TickTimer, 0)
         if new_board_tick_timer < self.last_board_tick_timer:
             raise RuntimeError("Board tick-timer didn't move forwards anymore, probably power reset occurred.")
@@ -80,7 +81,7 @@ class BoardControl:
         """
         axpar=self.boardpar.axes_parameters[axis_index]
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             # we need to also swap limit switches... 
             if axpar.invert_axis_direction:
                 logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {not(axpar.swap_limit_switches)=}")
@@ -96,7 +97,7 @@ class BoardControl:
         axpar=self.boardpar.axes_parameters[axis_index]
         logging.debug(f"setting axis inversion on board for {axis_index} to {axpar.invert_axis_direction}")
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
 
     def set_velocity_in_microsteps_per_second_on_board(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
@@ -104,7 +105,7 @@ class BoardControl:
         sets the velocity in microsteps per second for the given axis. Sends it to the board.
         """
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
 
@@ -113,7 +114,7 @@ class BoardControl:
         sets the acceleration in microsteps per second squared for the given axis. Sends it to the board.
         """
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             axis = self.module.motors[axis_index]
             axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
             # decelerate as quick as acceleration
@@ -124,7 +125,7 @@ class BoardControl:
         Returns the distance between the end switches in steps.
         """
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             return self.module.get_axis_parameter(self.module.motors[axis_index].AP.RightLimitSwitchPosition, axis_index) # limit switch distance in steps. 
 
     def home_axis(self, axis_index:int) -> None:
@@ -132,7 +133,7 @@ class BoardControl:
         Homes the motor on the given axis. 
         """
         with self.connection_manager.connect() as myInterface:
-            self.module = TMCM6214(myInterface)
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             # self.module.reference_search(0, axis_index, self.boardpar.board_module_id)
             myInterface.reference_search(0, axis_index, self.boardpar.board_module_id)
     
@@ -228,7 +229,7 @@ class BoardControl:
     def update_axis_parameters(self, axis_index:int):
         axpars=self.boardpar.axes_parameters[axis_index]
         with self.connection_manager.connect() as myInterface:
-            module = TMCM6214(myInterface, module_id=self.boardpar.board_module_id)
+            module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             axis = module.motors[axis_index]
 
             axpars.set_actual_coordinate_RBV_by_steps(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
