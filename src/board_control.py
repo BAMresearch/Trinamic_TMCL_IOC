@@ -148,8 +148,6 @@ class BoardControl:
         """
         Waits until the motor on the given axis has completed its motion. Updates the axis parameters and the EPICS fields.
         """
-        # avoiding unnecessary calls to update_axis_parameters, commenting out:
-        # self.update_axis_parameters(axis_index)
         axpar = self.boardpar.axes_parameters[axis_index]
         doublecheck = 0 # doublecheck that the motor is not moving anymore.
         if instance is not None:
@@ -159,17 +157,9 @@ class BoardControl:
             doublecheck += int(not(self.check_if_moving(axis_index)))
             await asyncio.sleep(self.boardpar.axes_parameters[axis_index].update_interval_moving)
             self.update_axis_parameters(axis_index)
-            # weirdness 6; not sure I should be continually writing this
-            # if instance is not None: 
-            #     await instance.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
             if instance is not None:
-                # await EPICS_fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(axpar.base_realworld_unit).magnitude)
-                # await EPICS_fields.dial_readback_value.write((axpar.actual_coordinate_RBV+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
-                # await EPICS_fields.raw_readback_value.write(axpar.real_world_to_steps(axpar.actual_coordinate_RBV))
                 if EPICS_fields.stop.value == 1 or EPICS_fields.stop_pause_move_go.value == 'Stop':
                     self.stop_axis(axis_index)
-                    # await EPICS_fields.stop.write(1)
-                    # await EPICS_fields.stop_pause_move_go.write('Stop')
                     axpar.is_move_interrupted = True
                     logging.warning(f"Motion interrupted by {EPICS_fields.stop.value=} and/or {EPICS_fields.stop_pause_move_go.value=}.")
                     break
@@ -232,8 +222,9 @@ class BoardControl:
             module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             axis = module.motors[axis_index]
 
-            axpars.set_actual_coordinate_RBV_by_steps(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
-            axpars.immediate_target_coordinate_RBV = axpars.steps_to_real_world(int(axis.get_axis_parameter(axis.AP.TargetPosition)))
+            axpars.actual_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
+            # don't think I need this:
+            axpars.immediate_target_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.TargetPosition)))
 
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
             axpars.is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))

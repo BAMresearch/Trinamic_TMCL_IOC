@@ -28,9 +28,9 @@ def quantity_converter(input_value: Union[str, float, int, ureg.Quantity], targe
         raise TypeError('Value must be either: 1) a float or int with a target_unit specified, 2) a string that can be interpreted as a Quantity or 3) a Quantity already')
 
 def validate_user_limits(instance, attribute, value):
-    # Adjusted limits considering the user offset
-    adjusted_negative_limit = instance.negative_user_limit + instance.user_offset
-    adjusted_positive_limit = instance.positive_user_limit + instance.user_offset
+    # Adjusted limits considering the user offset, adjusted to the EPICS definition. 
+    adjusted_negative_limit = instance.negative_user_limit - instance.user_offset
+    adjusted_positive_limit = instance.positive_user_limit - instance.user_offset
 
     if (adjusted_negative_limit < 0) or (adjusted_positive_limit > instance.stage_motion_limit_RBV):
         logging.error(f"User limits must not exceed the stage motion limits after considering the user offset")
@@ -59,7 +59,7 @@ class AxisParameters:
     swap_limit_switches: bool = attr.field(default=False) # swap the limit switches when they are connected wrong. This gets inverted when the axis direction is inverted.
 
     actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
-    # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
+    # # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
     immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this is the eventual / final target coordinate. 
     target_coordinate: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
@@ -122,6 +122,22 @@ class AxisParameters:
             logging.warning(f"incompatible units {acceleration_duration.units} in acceleration_duration_in_microsteps_per_second_squared")
         return int((self.velocity_in_microsteps_per_second(as_quantity=True) / self.acceleration_duration).to('steps/s**2').magnitude)
 
+    def user_to_raw(self, userCoordinate:ureg.Quantity) -> int:
+        """ 
+        Returns raw steps for provided user coordinates by sequencing user_to_dial and dial_to_raw. 
+        uses the EPICS definition: (fixes https://github.com/BAMresearch/Trinamic_TMCM6214_TMCL_IOC/issues/2)
+        userVAL = DialVAL * DIRection + OFFset
+        """
+        return self.dial_to_raw(self.user_to_dial(userCoordinate))
+
+    def raw_to_user(self, rawCoordinate:Union[int, ureg.Quantity]) -> ureg.Quantity:
+        """
+        returns the user coordinate matching a raw position in steps. by sequencing raw_to_dial and dial_to_user 
+        uses the EPICS definition: (fixes https://github.com/BAMresearch/Trinamic_TMCM6214_TMCL_IOC/issues/2)
+        userVAL = DialVAL * DIRection + OFFset
+        """
+        return self.dial_to_user(self.raw_to_dial(rawCoordinate))
+
     def user_to_dial(self, userCoordinate:ureg.Quantity) -> ureg.Quantity:
         """ 
         Returns dial coordinates for provided user coordinates in the same unit as provided. 
@@ -152,10 +168,6 @@ class AxisParameters:
         userVAL = DialVAL * DIRection + OFFset
         """
         return (dialCoordinate * self.direction + self.user_offset).to(dialCoordinate.units)
-
-    def set_actual_coordinate_RBV_by_steps(self, steps: int):
-        """Sets the actual coordinate (Read-Back Value) by converting from steps to real-world units. It adds the user_offset to the conversion result, maintaining the intended offset in the actual position."""
-        self.actual_coordinate_RBV = self.steps_to_real_world(steps) - self.user_offset
 
     def steps_to_real_world(self, steps: int) -> ureg.Quantity:
         """
