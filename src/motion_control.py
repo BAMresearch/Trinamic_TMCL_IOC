@@ -159,8 +159,8 @@ class MotionControl:
     def are_we_there_yet(self, axis_params:AxisParameters, target_coordinate:ureg.Quantity):
         """Checks whether we are within one step of the target_coordinate (user), returns True if so"""
         self.board_control.update_axis_parameters(axis_params.axis_number)
-        target_steps = axis_params.real_world_to_steps(target_coordinate + axis_params.user_offset)
-        actual_steps = axis_params.real_world_to_steps(axis_params.actual_coordinate_RBV + axis_params.user_offset)
+        target_steps = axis_params.user_to_raw(target_coordinate)
+        actual_steps = axis_params.user_to_raw(axis_params.actual_coordinate_RBV)
         return np.isclose(target_steps, actual_steps, atol=1.5)
 
     async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], include_backlash_when_required:bool=True, EPICS_fields_instance:Union[pvproperty, None]=None  ) -> None:

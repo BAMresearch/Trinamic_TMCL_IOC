@@ -51,9 +51,9 @@ class BoardControl:
         axpar=self.boardpar.axes_parameters[axis_index]
         self.set_velocity_in_microsteps_per_second_on_board(axis_index, axpar.velocity_in_microsteps_per_second())
         self.set_acceleration_in_microsteps_per_second_squared_on_board(axis_index, axpar.acceleration_in_microsteps_per_second_squared())
-        self.set_axis_inversion_on_board(axis_index) 
+        # self.set_axis_inversion_on_board(axis_index) 
         # not sure we need to also swap limit switches, but probably... if not, fix the logic in this method:
-        self.set_swapped_limit_switches_on_board(axis_index)
+        # self.set_swapped_limit_switches_on_board(axis_index)
 
     def initialize_axes(self) -> None:
         """
@@ -74,31 +74,35 @@ class BoardControl:
             self.module.set_global_parameter(self.module.GP0.TickTimer, 0, 0)
         self.last_board_tick_timer = new_board_tick_timer
 
-    def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
-        """
-        Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
-        this is inverted again if the axis direction is inverted. 
-        """
-        axpar=self.boardpar.axes_parameters[axis_index]
-        with self.connection_manager.connect() as myInterface:
-            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-            # we need to also swap limit switches... 
-            if axpar.invert_axis_direction:
-                logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {not(axpar.swap_limit_switches)=}")
-                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
-            else:
-                logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {(axpar.swap_limit_switches)=}")
-                self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+    # def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
+    #     """
+    #     Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
+    #     this is inverted again if the axis direction is inverted. 
+    #     """
+    #     logging.warning("set_swapped_limit_switches should now be done via the axis configurable_parameters. user direction can be inverted in software once axis and limit switches work in hardware.")
+    #     raise DeprecationWarning
+    #     # axpar=self.boardpar.axes_parameters[axis_index]
+    #     # with self.connection_manager.connect() as myInterface:
+    #     #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+    #     #     # we need to also swap limit switches... 
+    #     #     if axpar.invert_axis_direction: 
+    #     #         logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {not(axpar.swap_limit_switches)=}")
+    #     #         self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
+    #     #     else:
+    #     #         logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {(axpar.swap_limit_switches)=}")
+    #     #         self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
 
-    def set_axis_inversion_on_board(self, axis_index:int) -> None:
-        """
-        Sets the axis inversion on the board. 
-        """
-        axpar=self.boardpar.axes_parameters[axis_index]
-        logging.debug(f"setting axis inversion on board for {axis_index} to {axpar.invert_axis_direction}")
-        with self.connection_manager.connect() as myInterface:
-            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-            self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
+    # def set_axis_inversion_on_board(self, axis_index:int) -> None:
+    #     """
+    #     Sets the axis inversion on the board. 
+    #     """
+    #     logging.warning("set_axis_inversion should now be done via the axis configurable_parameters. User direction can be inverted in software once axis and limit switches work in hardware.")
+    #     raise DeprecationWarning
+    #     # axpar=self.boardpar.axes_parameters[axis_index]
+    #     # logging.debug(f"setting axis inversion on board for {axis_index} to {axpar.invert_axis_direction}")
+    #     # with self.connection_manager.connect() as myInterface:
+    #     #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+    #     #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
 
     def set_velocity_in_microsteps_per_second_on_board(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
         """
