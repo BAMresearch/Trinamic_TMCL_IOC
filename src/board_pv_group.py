@@ -49,37 +49,37 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     bc = mc.board_control
     change = False
     # 1) check if the user offset has been changed from EPICS
-    if fields.user_offset.value != axpar.user_offset.to(axpar.base_realworld_unit).magnitude:
+    if fields.user_offset.value != axpar.user_offset.to(ureg.Unit(fields.engineering_units.value)).magnitude:
         mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit, adjust_user_limits=False)
         logging.info("user offset changed")
         change = True
 
     # 2) check if the user lower limit has been changed from EPICS
-    if fields.user_low_limit.value != axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude:
-        axpar.negative_user_limit = fields.user_low_limit.value*axpar.base_realworld_unit
-        # also update the dial low limit
-        logging.info("negative user limit changed")
-        await fields.dial_low_limit.write((axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
+    if fields.user_low_limit.value != axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude:
+        axpar.negative_user_limit = fields.user_low_limit.value*ureg.Unit(fields.engineering_units.value)
+        # also update the dial low limit. adjusted to the EPICS standard
+        logging.info("negative user limit changed") 
+        await fields.dial_low_limit.write(axpar.user_to_dial(axpar.negative_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
             
-    if fields.dial_low_limit.value != (axpar.negative_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude:
-        axpar.negative_user_limit = (fields.dial_low_limit.value*axpar.base_realworld_unit-axpar.user_offset)
+    if fields.dial_low_limit.value != axpar.user_to_dial(axpar.negative_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude:
+        axpar.negative_user_limit = axpar.user_to_dial(fields.dial_low_limit.value*ureg.Unit(fields.engineering_units.value))
         # also update the user low limit
         logging.info("dial low limit changed")
-        await fields.user_low_limit.write(axpar.negative_user_limit.to(axpar.base_realworld_unit).magnitude)
+        await fields.user_low_limit.write(axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
 
     # 3) check if the user upper limit has been changed from EPICS
-    if fields.user_high_limit.value != axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude:
-        axpar.positive_user_limit = fields.user_high_limit.value*axpar.base_realworld_unit
+    if fields.user_high_limit.value != axpar.positive_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude:
+        axpar.positive_user_limit = fields.user_high_limit.value*ureg.Unit(fields.engineering_units.value)
         # also update the dial high limit
-        await fields.dial_high_limit.write((axpar.positive_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude)
+        await fields.dial_high_limit.write(axpar.user_to_dial(axpar.positive_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
     
-    if fields.dial_high_limit.value != (axpar.positive_user_limit+axpar.user_offset).to(axpar.base_realworld_unit).magnitude:
-        axpar.positive_user_limit = (fields.dial_high_limit.value*axpar.base_realworld_unit-axpar.user_offset)
+    if fields.dial_high_limit.value != axpar.user_to_dial(axpar.positive_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude:
+        axpar.positive_user_limit = axpar.dial_to_user(fields.dial_high_limit.value*ureg.Unit(fields.engineering_units.value))
         # also update the user high limit
-        await fields.user_high_limit.write(axpar.positive_user_limit.to(axpar.base_realworld_unit).magnitude)
+        await fields.user_high_limit.write(axpar.positive_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
     
     # 4) check if the velocity has been changed from EPICS
