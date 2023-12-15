@@ -43,7 +43,7 @@ class MotionControl:
         self.user_coordinate_change_by_delta(axis_index, delta)
 
 
-    def find_mismatched_calibration_field(self, axpar: AxisParameters, fields: MotorFields, valuevalue:Union(None, float) = None) -> (str, Union[float, int]):
+    def find_mismatched_calibration_field(self, axpar: AxisParameters, fields: MotorFields, valuevalue:Union[None, float] = None) -> (str, Union[float, int]):
         """
         Helper method that finds out which field has been changed in EPICS, so that the calibration can update the relevant axis parameter settings.
         Returns a string that indicates which parameter changed, and a delta by how much it changed delta (new - old), in EGU as float or int. 
