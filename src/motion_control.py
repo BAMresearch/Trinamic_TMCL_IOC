@@ -1,11 +1,14 @@
 from typing import Union
 
 import numpy as np
+
+from src.epics_utils import update_epics_motorfields_instance
 from .board_control import BoardControl
 from .axis_parameters import AxisParameters, quantity_converter
 from . import ureg
 import logging
 from caproto.server.records import pvproperty
+from caproto.server.records import MotorFields
 
 class MotionControl:
     """high-level interface for controlling motion of the motors"""
@@ -39,32 +42,148 @@ class MotionControl:
         delta = new_actual_coordinate - axis_params.actual_coordinate_RBV
         self.user_coordinate_change_by_delta(axis_index, delta)
 
-    def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str):
+
+    def find_mismatched_calibration_field(self, axpar: AxisParameters, fields: MotorFields, valuevalue:Union(None, float) = None) -> (str, Union[float, int]):
+        """
+        Helper method that finds out which field has been changed in EPICS, so that the calibration can update the relevant axis parameter settings.
+        Returns a string that indicates which parameter changed, and a delta by how much it changed delta (new - old), in EGU as float or int. 
+        We check the following fields:
+        VAL, DVAL, RVAL, OFF.
+        Since I don't know where to get the value for the main fields instance (VAL), that can be supplied as optional parameter. from value_write_hook
+        """
+        rtol = 1e-5 
+        atol = 1.5
+
+        # value
+        if valuevalue is not None:
+            delta = valuevalue - axpar.actual_coordinate_RBV.to(ureg.Unit(fields.engineering_units.value)).magnitude
+            if not np.isclose(delta, 0, rtol=rtol):
+                return "VAL", delta
+
+        # dval
+        delta = fields.dial_desired_value.value - axpar.user_to_dial(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
+        if not np.isclose(delta, 0, rtol = rtol):
+            return "DVAL", delta
+
+        # rval
+        delta = fields.raw_desired_value.value - axpar.user_to_raw(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
+        if not np.isclose(delta, 0, atol = atol):
+            return "RVAL", delta
+
+        # offset
+        delta = fields.user_offset.value - axpar.user_offset.to(ureg.Unit(fields.engineering_units.value)).magnitude
+        if not np.isclose(delta, 0, rtol = rtol):
+            return "OFF", delta
+
+        logging.warning("trying to find calibration field mismatch but VAL, DVAL, RVAL or OFF are not different")
+        return "NotFound", 0
+
+
+    async def coordinate_change_through_epics(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, valuevalue:Union[float, None]=None):
+        """
+        This is a directing supermethod that is called when "set_use_switch" is set to "Set". 
+        It can be called by board_pv_group upon value_write_hook when VAL is changed, or update_axpar_from_epics_and_take_action when either of them notice the Set flag.
+        It finds out which EPICS motorfield has been changed, and calls the appropriate method to adapt the remaining motor calibration fields to the new settings.
+        """
+        fields: MotorFields = EPICS_motorfields_instance.fields_inst
+        # check our assumptions:
+        assert fields.set_use_switch == 'Set', logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
+        # find out what changed:
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axpar = self.board_control.boardpar.axes_parameters[axis_index]
+
+        changed_field, delta = self.find_mismatched_calibration_field(axpar, fields, valuevalue)
+
+        # find out if the fixed offset FOFF is set to Fixed or Variable:
+        if fields.offset_freeze_switch.value=='Variable':
+            self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+        else:
+            self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+        # after we're done with these, we update the EPICS fields: 
+        await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+
+    def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
         """
         When the "SET" field is 'Set' (not 'Use'), we have to update the links between the user, dial, and raw settings, as well as the high and low limits without moving the motor.
         This is used for calibration between the user and dial positions. Details in the EPICS motor record definition for the calibration-related fields. 
         Its behaviour is different depending whether "FOFF" (Fix Offset) is on or off.
         This is the method for setting when FOFF is not Fixed but Variable.
-        This method is expected to be called from board_pv_group.py: update_axpar_from_epics_and_take_action. For "VAL", this is called from the interrupt callback.
-        changed_field must be one of: "VAL", "DVAL" or "RVAL"
+        This method is expected to be called from coordinate_change_through_epics
+        changed_field must be one of: "VAL", "DVAL", "OFF" or "RVAL"
         """
-        fields = EPICS_motorfields_instance.field_inst
+        fields: MotorFields = EPICS_motorfields_instance.field_inst
         axis_index = self._resolve_axis_index(axis_index_or_name)
-        axis_params = self.board_control.boardpar.axes_parameters[axis_index]
-        assert fields.set_use_switch == 'Set', 'SET switch must be "Set" to use the coordinate_change_through_epics_set_no_foff method'
+        axpar = self.board_control.boardpar.axes_parameters[axis_index]
         assert fields.offset_freeze_switch == 'Variable', 'FOFF switch must be "Variable" to use the coordinate_change_through_epics_set_no_foff method'
         # find out which field has changed:
-        if changed_field == "VAL":
-            # change offset so that the current VAL is equal to the requested VAL. we can use user_coordinate_change_by_Delta for this. 
-            self.user_coordinate_change(axis_index, ureg.Quantity(fields.VAL, fields.EGU))
+        logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
+        if changed_field == "VAL" or changed_field=="OFF":
+            # change offset so that the current VAL is equal to the requested VAL. 
+            delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
+            axpar.user_offset += delta
+            axpar.negative_user_limit += delta
+            axpar.positive_user_limit += delta
+            # update the relevant fields, this updates the thing too.. 
+            self.board_control.update_axis_parameters(axis_index)
             return # things might go squiffy if we now also do the below...
         elif changed_field == "DVAL": 
             # update RVAL without moving. Also change the offset so VAL stays the same. 
-            Delta = axis_params.dial_to_user(ureg.Quantity(fields.DVAL, fields.EGU)) - axis_params.actual_coordinate_RBV
-            pass
+            delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
+            axpar.user_offset -= delta # VAL should not change, neither the associated limits
+            # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
+            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            # update the relevant fields, this updates the thing too.. 
+            self.board_control.update_axis_parameters(axis_index)
+            return 
         elif changed_field == "RVAL":
-            # update DVAL, then the offset so VAL stays the same. 
-            pass 
+            # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
+            # update RVAL without moving. Also change the offset so VAL stays the same. 
+            assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
+            axpar.user_offset -= axpar.steps_to_real_world(delta) # VAL should not change, neither the associated limits
+            # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
+            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            # update the relevant fields, this updates the thing too.. 
+            self.board_control.update_axis_parameters(axis_index)
+            return 
+        else:
+            logging.warning(f'Set field changes for changes in {changed_field=} with {delta=} are not supported yet.')
+
+
+    def coordinate_change_through_epics_set_fixed_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
+        """
+        When the "SET" field is 'Set' (not 'Use'), we have to update the links between the user, dial, and raw settings, as well as the high and low limits without moving the motor.
+        This is used for calibration between the user and dial positions. Details in the EPICS motor record definition for the calibration-related fields. 
+        Its behaviour is different depending whether "FOFF" (Fix Offset) is on or off. 
+        This is the method for setting when FOFF is not Variable but Fixed.
+        This method is expected to be called from coordinate_change_through_epics
+        changed_field must be one of: "VAL", "DVAL", "OFF" or "RVAL"
+        """
+        fields: MotorFields = EPICS_motorfields_instance.field_inst
+        axis_index = self._resolve_axis_index(axis_index_or_name)
+        axpar = self.board_control.boardpar.axes_parameters[axis_index]
+        assert fields.offset_freeze_switch == 'Fixed', 'FOFF switch must be "Fixed" to use the coordinate_change_through_epics_set_fixed_foff method'
+        # find out which field has changed:
+        logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
+        if changed_field == "VAL" or changed_field=='DVAL':
+            # change motor board value so that the current VAL is equal to the requested VAL. 
+            delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
+            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            # and now we let nature take its course 
+            self.board_control.update_axis_parameters(axis_index)
+            return # things might go squiffy if we now also do the below...
+        elif changed_field == "RVAL":
+            # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
+            # update RVAL without moving. Also change the offset so VAL stays the same. 
+            assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
+            # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
+            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            # let nature take its course.
+            self.board_control.update_axis_parameters(axis_index)
+            return 
+        # Add the changed_field OFF thingie, although with fixed offset, should anything happen really? let's not for now...
+        else:
+            logging.warning(f'Set field with fixed offset changes for changes in {changed_field=} with {delta=} are not supported yet.')
+
 
     def user_coordinate_change_by_delta(self, axis_index_or_name: Union[int, str], delta: Union[ureg.Quantity, float], adjust_user_limits:bool=True) -> None:
         """Changes the user coordinate by adjustment of the offset. For EPICS-dictated changes, adjust_user_limits should be set to False, as EPICS already updates the lower limit..."""
@@ -78,14 +197,16 @@ class MotionControl:
             axis_params.positive_user_limit += delta
         self.board_control.update_axis_parameters(axis_index)
         logging.info(f"User offset for axis {axis_index} changed to {axis_params.user_offset}.")
-    
+
+
     def user_coordinate_zero(self, axis_index_or_name: Union[int, str]) -> None:
         """ sets the user offset for the specified axis to the current coordinate, effectively setting the current position to zero. """
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axis_params = self.board_control.boardpar.axes_parameters[axis_index]
         delta = axis_params.actual_coordinate_RBV
         self.user_coordinate_change_by_delta(axis_index, delta)
-    
+
+
     async def home_await_and_set_limits(self, axis_index: int, EPICS_fields_instance:Union[pvproperty, None]=None) -> None:
         """ kicks off the homing process, waits for it to complete, and sets the stage motion range limit to the end switch distance. """
         # indicate the stage is not homed.

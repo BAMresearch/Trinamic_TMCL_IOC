@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Union
+from typing import List, Union
 from src.axis_parameters import AxisParameters
 from src.board_parameters import BoardParameters
 import pytrinamic
@@ -74,55 +74,54 @@ class BoardControl:
             self.module.set_global_parameter(self.module.GP0.TickTimer, 0, 0)
         self.last_board_tick_timer = new_board_tick_timer
 
-    # def set_swapped_limit_switches_on_board(self, axis_index:int) -> None:
-    #     """
-    #     Sets the swapped limit switches on the board based on the value of swap_limit_switches in the AxisParameters instance.
-    #     this is inverted again if the axis direction is inverted. 
-    #     """
-    #     logging.warning("set_swapped_limit_switches should now be done via the axis configurable_parameters. user direction can be inverted in software once axis and limit switches work in hardware.")
-    #     raise DeprecationWarning
-    #     # axpar=self.boardpar.axes_parameters[axis_index]
-    #     # with self.connection_manager.connect() as myInterface:
-    #     #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-    #     #     # we need to also swap limit switches... 
-    #     #     if axpar.invert_axis_direction: 
-    #     #         logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {not(axpar.swap_limit_switches)=}")
-    #     #         self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(not(axpar.swap_limit_switches)))
-    #     #     else:
-    #     #         logging.debug(f"setting swapped limit switches on board for {axpar.short_id} to {(axpar.swap_limit_switches)=}")
-    #     #         self.module.set_axis_parameter(self.module.motors[axis_index].AP.SwapLimitSwitches, axis_index, int(axpar.swap_limit_switches))
+    def set_axis_single_parameter(self, axis_index:int, parameter_string:str, value: int) -> None:
+        self.set_axis_parameters(self, axis_index, [(parameter_string, value)])
 
-    # def set_axis_inversion_on_board(self, axis_index:int) -> None:
-    #     """
-    #     Sets the axis inversion on the board. 
-    #     """
-    #     logging.warning("set_axis_inversion should now be done via the axis configurable_parameters. User direction can be inverted in software once axis and limit switches work in hardware.")
-    #     raise DeprecationWarning
-    #     # axpar=self.boardpar.axes_parameters[axis_index]
-    #     # logging.debug(f"setting axis inversion on board for {axis_index} to {axpar.invert_axis_direction}")
-    #     # with self.connection_manager.connect() as myInterface:
-    #     #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-    #     #     self.module.set_axis_parameter(self.module.motors[axis_index].AP.ReverseShaft, axis_index, int(axpar.invert_axis_direction))
+    def set_axis_parameters(self, axis_index:int, parval_list: List[(str, int)]) -> None:
+        """
+        Convenience function when you have to set a single axis parameter from somewhere else. 
+        parval_list is a list of (parameter_string, value) tuples. 
+        parameters_string should be an existing axis parameter name, such as MaxVelocity. 
+        value must be an int.
+        """
+        with self.connection_manager.connect() as myInterface:
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+            axis = self.module.motors[axis_index]
+            for parval in parval_list:
+                parameter_string, value = parval # unpack
+                assert isinstance(value, int), logging.error(f'calls to board_control.set_axis_parameter should have a parameter value that is an int. Got {type(value)=} instead for {parameter_string=}')
+                parameter = getattr(axis.AP, parameter_string, None)
+                if parameter is None: 
+                    logging.warning(f'Tried to set axis parameter with name {parameter_string}, but could not find it in the Trinamic axis parameter (axis.AP) model')
+                else:
+                    axis.set_axis_parameter(parameter, value)
 
     def set_velocity_in_microsteps_per_second_on_board(self, axis_index:int, velocity_in_microsteps_per_second:int) -> None:
         """
         sets the velocity in microsteps per second for the given axis. Sends it to the board.
         """
-        with self.connection_manager.connect() as myInterface:
-            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-            axis = self.module.motors[axis_index]
-            axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
+        self.set_axis_single_parameter(axis_index, 'MaxVelocity', velocity_in_microsteps_per_second)
+        # with self.connection_manager.connect() as myInterface:
+        #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+        #     axis = self.module.motors[axis_index]
+        #     axis.set_axis_parameter(axis.AP.MaxVelocity, velocity_in_microsteps_per_second)
 
     def set_acceleration_in_microsteps_per_second_squared_on_board(self, axis_index:int, acceleration_in_microsteps_per_second_squared:int) -> None:
         """
         sets the acceleration in microsteps per second squared for the given axis. Sends it to the board.
         """
-        with self.connection_manager.connect() as myInterface:
-            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
-            axis = self.module.motors[axis_index]
-            axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
-            # decelerate as quick as acceleration
-            axis.set_axis_parameter(axis.AP.MaxDeceleration, acceleration_in_microsteps_per_second_squared)
+        self.set_axis_parameters(
+            axis_index, [
+                ('MaxAcceleration', acceleration_in_microsteps_per_second_squared),
+                ('MaxDeceleration', acceleration_in_microsteps_per_second_squared)
+            ]
+        )
+        # with self.connection_manager.connect() as myInterface:
+        #     self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+        #     axis = self.module.motors[axis_index]
+        #     axis.set_axis_parameter(axis.AP.MaxAcceleration, acceleration_in_microsteps_per_second_squared)
+        #     # decelerate as quick as acceleration
+        #     axis.set_axis_parameter(axis.AP.MaxDeceleration, acceleration_in_microsteps_per_second_squared)
 
     def get_end_switch_distance(self, axis_index:int) -> int:
         """

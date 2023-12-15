@@ -54,8 +54,8 @@ class AxisParameters:
     backlash: ureg.Quantity = attr.field(default='1.0 mm', validator=validate_quantity, converter=quantity_converter)
 
     invert_limit_values: bool = attr.field(default=False) # invert logical values before displaying them to the user
-    # invert axis direction is not implemented yet.
-    invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation
+    # invert axis direction can be done on the board level via configurable_parameters, or here on the software level. 
+    invert_axis_direction: bool = attr.field(default=False) # invert user coordinate representation, similar to EPICS DIRection field
     swap_limit_switches: bool = attr.field(default=False) # swap the limit switches when they are connected wrong. This gets inverted when the axis direction is inverted.
 
     actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)

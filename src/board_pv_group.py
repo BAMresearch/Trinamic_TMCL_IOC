@@ -48,6 +48,12 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
     change = False
+    if fields.set_use_switch=='Set':
+        # special mode, changing motor calibration:
+        await mc.coordinate_change_through_epics(axis_index, instance)
+        # this also updates the epics motorfields instance, so there shouldn't be much more to change TBH. 
+        # but... we'll let the rest do things anyway. 
+
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(ureg.Unit(fields.engineering_units.value)).magnitude:
         mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit, adjust_user_limits=False)
@@ -167,6 +173,11 @@ async def motor_record(instance, async_lib, defaults=None,
         Runs when a new value is set. 
         """
         # This happens when a user puts to `motor.VAL`
+        # first, we check if we should move at all, or if it is a call to adjust the calibration using the EPICS SET flag:
+        if fields.set_use_switch.value=='Set':
+            logging.info('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
+            await motion_control.coordinate_change_through_epics(axis_index, instance, value)
+            return # nothing more to do.
         motion_control.reset_move_interrupt(axpar) # nothing special, just resets the flag. We only want to do this at the very start of a new move
         nonlocal have_new_position
         have_new_position = True
@@ -221,7 +232,7 @@ async def motor_record(instance, async_lib, defaults=None,
 
         # backlash if we must
         # while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
-        while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted):
+        while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted) and fields.set_use_switch=='Use':
             await update_epics_motorfields_instance(axpar, instance, 'moving')
             logging.debug(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
             await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, include_backlash_when_required=False, EPICS_fields_instance=instance)
