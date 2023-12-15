@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Union
+from typing import List, Tuple, Union
 from src.axis_parameters import AxisParameters
 from src.board_parameters import BoardParameters
 import pytrinamic
@@ -77,7 +77,7 @@ class BoardControl:
     def set_axis_single_parameter(self, axis_index:int, parameter_string:str, value: int) -> None:
         self.set_axis_parameters(self, axis_index, [(parameter_string, value)])
 
-    def set_axis_parameters(self, axis_index:int, parval_list: List[(str, int)]) -> None:
+    def set_axis_parameters(self, axis_index:int, parval_list: List[Tuple[str, int]]) -> None:
         """
         Convenience function when you have to set a single axis parameter from somewhere else. 
         parval_list is a list of (parameter_string, value) tuples. 
