@@ -75,7 +75,7 @@ class BoardControl:
         self.last_board_tick_timer = new_board_tick_timer
 
     def set_axis_single_parameter(self, axis_index:int, parameter_string:str, value: int) -> None:
-        self.set_axis_parameters(self, axis_index, [(parameter_string, value)])
+        self.set_axis_parameters(axis_index, [(parameter_string, value)])
 
     def set_axis_parameters(self, axis_index:int, parval_list: List[Tuple[str, int]]) -> None:
         """
