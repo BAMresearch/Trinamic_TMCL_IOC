@@ -44,6 +44,9 @@ class AxisParameters:
     acceleration_duration: ureg.Quantity = attr.field(default='1.0 s', validator=validate_quantity, converter=quantity_converter)
 
     backlash_direction: int = attr.field(default=1, validator=validate_backlash_direction)
+    # backlash_velocity: ureg.Quantity = attr.field(default=velocity, validator=validate_quantity, converter=quantity_converter)
+    # backlash_acceleration_duration: ureg.Quantity = attr.field(default=acceleration_duration, validator=validate_quantity, converter=quantity_converter)
+
     # Custom unit conversion factor (e.g., steps to mm or steps to radians)
     steps_to_realworld_conversion_quantity: ureg.Quantity = attr.field(
         default='1 steps/mm', validator=validate_quantity, converter=quantity_converter)

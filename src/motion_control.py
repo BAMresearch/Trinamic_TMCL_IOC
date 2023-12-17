@@ -60,6 +60,12 @@ class MotionControl:
             if not np.isclose(delta, 0, rtol=rtol):
                 return "VAL", delta
 
+        # relative val: RLV:
+        delta = fields.relative_value.value
+        if not np.isclose(delta, 0, rtol=rtol):
+            fields.relative_value.write(0)
+            return "RLV", delta
+
         # dval
         delta = fields.dial_desired_value.value - axpar.user_to_dial(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
         if not np.isclose(delta, 0, rtol = rtol):
@@ -117,7 +123,7 @@ class MotionControl:
         assert fields.offset_freeze_switch == 'Variable', 'FOFF switch must be "Variable" to use the coordinate_change_through_epics_set_no_foff method'
         # find out which field has changed:
         logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
-        if changed_field == "VAL" or changed_field=="OFF":
+        if changed_field == "VAL" or changed_field=="OFF" or changed_field=="RLV":
             # change offset so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             axpar.user_offset += delta
@@ -164,7 +170,7 @@ class MotionControl:
         assert fields.offset_freeze_switch == 'Fixed', 'FOFF switch must be "Fixed" to use the coordinate_change_through_epics_set_fixed_foff method'
         # find out which field has changed:
         logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
-        if changed_field == "VAL" or changed_field=='DVAL':
+        if changed_field == "VAL" or changed_field=='DVAL' or changed_field=="RLV":
             # change motor board value so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))

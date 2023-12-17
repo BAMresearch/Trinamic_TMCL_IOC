@@ -64,7 +64,10 @@ More information can be found in the EPICS documentaiton for motor records.
 Caproto exposes quite a few of the EPICS motor fields by default. The following EPICS motor fields are actively updated by this package, mostly in line with the requirements of controlling EPICS motors via SPEC with a few extra's thrown in, and use EGU's (Engineering units) when possible:
   - ACCL - acceleration time (seconds)
   - BDST - backlash distance (EGU)
+  - BVEL - Not fully implemented, just assumes VELO as RBV for now. 
+  - BACC - Not fully implemented, just assumes ACCL as RBV for now. 
   - DHLM - dial high limit
+  - DIFF - Dial difference target - actual
   - DIR  - axis direction, best set in the configuration file, not recommended to change during operation, although it should be possible. 
   - DLLM - Dial low limit
   - DMOV - Done moving to target
@@ -72,15 +75,19 @@ Caproto exposes quite a few of the EPICS motor fields by default. The following 
   - DVAL - Dial desired value
   - EGU  - Engineering base units, e.g. 'mm' for millimeters. 
   - HLS  - high-limit switch
+  - IGSET - ignores the SET field... why is this even here. 
   - LLS  - low-limit switch
   - MOVN - motor is moving
   - MRES - Motor step size (EGU/step)
   - OFF  - user offset (EGU) of the user scale from the dial scale (offset of user zero from dial zero). 
+  - RBV  - User position read-back value (EGU)
+  - RDIF - Raw difference target - actual
   - RHLS - Raw high-limit switch status
   - RLLS - Raw low-limit switch status
+  - RLV - Relative (user) value change
   - RRBV - Raw position read-back value (steps)
-  - RBV  - User position read-back value (EGU)
   - RVAL - Raw desired value
+  - SET - Allows modification of the calibration values without physical movement
   - SPMG - Stop-pause-move-go, an externally set flag, normally set to "Go". Can be set to "Stop" to prevent motion
   - STOP - STOP flag. prevents motion if set True
   - VAL  - User desired value

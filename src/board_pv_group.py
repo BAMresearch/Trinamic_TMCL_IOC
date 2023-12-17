@@ -48,11 +48,17 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
     change = False
-    if fields.set_use_switch=='Set':
+    if fields.set_use_switch.value=='Set' and not bool(fields.ignore_set_field.value):
         # special mode, changing motor calibration:
         await mc.coordinate_change_through_epics(axis_index, instance)
         # this also updates the epics motorfields instance, so there shouldn't be much more to change TBH. 
         # but... we'll let the rest do things anyway. 
+
+    # 0) check if RLV has been changed, if so, kick off a relative move. 
+    if fields.relative_value.value != 0:
+        delta = fields.relative_value.value
+        await fields.relative_value.write(0)
+        await fields.value_write_hook(instance, axpar.actual_coordinate_RBV + ureg.Quantity(delta, fields.engineering_units.value))
 
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(ureg.Unit(fields.engineering_units.value)).magnitude:
@@ -174,7 +180,7 @@ async def motor_record(instance, async_lib, defaults=None,
         """
         # This happens when a user puts to `motor.VAL`
         # first, we check if we should move at all, or if it is a call to adjust the calibration using the EPICS SET flag:
-        if fields.set_use_switch.value=='Set':
+        if fields.set_use_switch.value=='Set' and not bool(fields.ignore_set_field.value):
             logging.info('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
             await motion_control.coordinate_change_through_epics(axis_index, instance, value)
             return # nothing more to do.
