@@ -24,7 +24,7 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     await fields.bl_velocity.write(axpar.velocity.to(ureg.Unit(fields.engineering_units.value)/ureg.s).magnitude)
     await fields.bl_seconds_to_velocity.write(axpar.acceleration_duration.to(ureg.s).magnitude)
     await fields.difference_dval_drbv.write(axpar.user_to_dial(axpar.target_coordinate-axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude)
-    await fields.difference_rval_rrbv.write(axpar.dial_to_raw(axpar.target_coordinate-axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude)
+    await fields.difference_rval_rrbv.write(axpar.dial_to_raw(axpar.target_coordinate-axpar.actual_coordinate_RBV))
     await fields.user_low_limit.write(axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude) 
     await fields.user_high_limit.write(axpar.positive_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude)
     await fields.user_readback_value.write(axpar.actual_coordinate_RBV.to(ureg.Unit(fields.engineering_units.value)).magnitude)
