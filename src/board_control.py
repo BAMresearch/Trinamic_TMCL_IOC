@@ -225,9 +225,9 @@ class BoardControl:
             module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
             axis = module.motors[axis_index]
 
-            axpars.actual_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.ActualPosition)))
+            axpars.actual_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.ActualPosition, signed=True)))
             # don't think I need this:
-            axpars.immediate_target_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.TargetPosition)))
+            axpars.immediate_target_coordinate_RBV = axpars.raw_to_user(int(axis.get_axis_parameter(axis.AP.TargetPosition, signed=True))))
 
             axpars.is_moving_RBV = bool(axis.get_axis_parameter(axis.AP.ActualVelocity)!=0)
             axpars.is_position_reached_RBV = bool(axis.get_axis_parameter(axis.AP.PositionReachedFlag))
