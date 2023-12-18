@@ -121,7 +121,7 @@ class MotionControl:
         fields: MotorFields = EPICS_motorfields_instance.field_inst
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
-        assert fields.offset_freeze_switch == 'Variable', 'FOFF switch must be "Variable" to use the coordinate_change_through_epics_set_no_foff method'
+        assert fields.offset_freeze_switch.value == 'Variable', 'FOFF switch must be "Variable" to use the coordinate_change_through_epics_set_no_foff method'
         # find out which field has changed:
         logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
         if changed_field == "VAL" or changed_field=="OFF" or changed_field=="RLV":
@@ -168,7 +168,7 @@ class MotionControl:
         fields: MotorFields = EPICS_motorfields_instance.field_inst
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
-        assert fields.offset_freeze_switch == 'Fixed', 'FOFF switch must be "Fixed" to use the coordinate_change_through_epics_set_fixed_foff method'
+        assert fields.offset_freeze_switch.value == 'Fixed', 'FOFF switch must be "Fixed" to use the coordinate_change_through_epics_set_fixed_foff method'
         # find out which field has changed:
         logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
         if changed_field == "VAL" or changed_field=='DVAL' or changed_field=="RLV":
