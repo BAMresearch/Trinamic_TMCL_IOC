@@ -52,7 +52,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
         # special mode, changing motor calibration:
         await mc.coordinate_change_through_epics(axis_index, instance)
         # this also updates the epics motorfields instance, so there shouldn't be much more to change TBH. 
-        # but... we'll let the rest do things anyway. 
+        return
 
     # 0) check if RLV has been changed, if so, kick off a relative move. 
     if fields.relative_value.value != 0:
