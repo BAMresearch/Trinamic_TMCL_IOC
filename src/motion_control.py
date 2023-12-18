@@ -91,9 +91,9 @@ class MotionControl:
         It can be called by board_pv_group upon value_write_hook when VAL is changed, or update_axpar_from_epics_and_take_action when either of them notice the Set flag.
         It finds out which EPICS motorfield has been changed, and calls the appropriate method to adapt the remaining motor calibration fields to the new settings.
         """
-        fields: MotorFields = EPICS_motorfields_instance.fields_inst
+        fields: MotorFields = EPICS_motorfields_instance.field_inst
         # check our assumptions:
-        assert fields.set_use_switch.value == 'Set', logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
+        assert fields.set_use_switch.value == 1, logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
         # find out what changed:
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
