@@ -193,7 +193,7 @@ class MotionControl:
             assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
-            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
             await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
