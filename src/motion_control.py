@@ -240,7 +240,7 @@ class MotionControl:
         logging.info(f"Axis {axis_index} homed, setting parameters.")
         # set the stage motion range limit to the end switch distance
         range_steps = self.board_control.get_end_switch_distance(axis_index)
-        range_realworld = axpar.steps_to_real_world(range_steps)
+        range_realworld = axpar.raw_to_dial(range_steps)
         axpar.stage_motion_limit_RBV = range_realworld
         # now we re-set the user limits to re-validate that they lie within the stage motion limit
         axpar.negative_user_limit = self.board_control.boardpar.axes_parameters[axis_index].negative_user_limit
