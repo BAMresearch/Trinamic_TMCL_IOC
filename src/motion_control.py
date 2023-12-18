@@ -326,7 +326,7 @@ class MotionControl:
         if axis_params.is_move_interrupted:
             logging.error('Not allowed to move due to flags telling us not to.')
         else:
-            steps = axis_params.real_world_to_steps(adjusted_backlashed_target + axis_params.user_offset)
+            steps = axis_params.user_to_raw(adjusted_backlashed_target)
             self.board_control.move_axis(axis_index, steps)
 
     async def move_to_coordinate_with_backlash(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], absolute_or_relative: str = 'absolute', EPICS_fields_instance:Union[pvproperty, None]=None  ) -> None:
