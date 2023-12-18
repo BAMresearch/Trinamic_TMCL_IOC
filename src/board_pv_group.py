@@ -48,7 +48,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
     change = False
-    if fields.set_use_switch.value==0 and not bool(fields.ignore_set_field.value):
+    if fields.set_use_switch.value==1 and not(bool(fields.ignore_set_field.value)):
         # special mode, changing motor calibration:
         await mc.coordinate_change_through_epics(axis_index, instance)
         # this also updates the epics motorfields instance, so there shouldn't be much more to change TBH. 
@@ -180,7 +180,7 @@ async def motor_record(instance, async_lib, defaults=None,
         """
         # This happens when a user puts to `motor.VAL`
         # first, we check if we should move at all, or if it is a call to adjust the calibration using the EPICS SET flag:
-        if fields.set_use_switch.value==0 and not bool(fields.ignore_set_field.value):
+        if fields.set_use_switch.value==1 and not bool(fields.ignore_set_field.value):
             logging.info('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
             await motion_control.coordinate_change_through_epics(axis_index, instance, value)
             return # nothing more to do.
@@ -207,6 +207,7 @@ async def motor_record(instance, async_lib, defaults=None,
     # await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
     await update_epics_motorfields_instance(axpar, instance) # initial update of the EPICS fields. from this point on we can sync
     # # check if settable values from EPICS require us to do anything
+    logging.info(f'board_pv_group line 210: {fields.set_use_mode.value=}')
     await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
 
     while True:
