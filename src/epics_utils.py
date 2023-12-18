@@ -72,4 +72,4 @@ async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instan
 async def epics_reset_stop_flag(fields: MotorFields) -> None:
     """resets the stop flag to 0"""
     if fields.stop.value != 0:
-        fields.stop.write(0)
+        await fields.stop.write(0)
