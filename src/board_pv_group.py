@@ -58,6 +58,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     if fields.relative_value.value != 0:
         delta = fields.relative_value.value
         await fields.relative_value.write(0)
+        logging.info(f'Relative value changed by {fields.relative_value.value=}')
         await fields.value_write_hook(instance, axpar.actual_coordinate_RBV + ureg.Quantity(delta, fields.engineering_units.value))
 
     # 1) check if the user offset has been changed from EPICS

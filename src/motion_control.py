@@ -81,7 +81,7 @@ class MotionControl:
         if not np.isclose(delta, 0, rtol = rtol):
             return "OFF", delta
 
-        logging.warning("trying to find calibration field mismatch but VAL, DVAL, RVAL or OFF are not different")
+        logging.warning("trying to find calibration field mismatch but VAL, DVAL, RLV, RVAL or OFF are not different")
         return "NotFound", 0
 
 
@@ -139,6 +139,7 @@ class MotionControl:
             axpar.user_offset -= delta # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             return 
@@ -149,6 +150,7 @@ class MotionControl:
             axpar.user_offset -= axpar.steps_to_real_world(delta) # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             return 
@@ -175,6 +177,7 @@ class MotionControl:
             # change motor board value so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # and now we let nature take its course 
             self.board_control.update_axis_parameters(axis_index)
             return # things might go squiffy if we now also do the below...
@@ -184,6 +187,7 @@ class MotionControl:
             assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
             return 
