@@ -48,7 +48,7 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     axpar = mc.board_control.boardpar.axes_parameters[axis_index] # get the axis parameters for this axis
     bc = mc.board_control
     change = False
-    if fields.set_use_switch.value==1 and not(bool(fields.ignore_set_field.value)):
+    if fields.set_use_switch.value=='Set' and not(bool(fields.ignore_set_field.value)):
         # special mode, changing motor calibration:
         await mc.coordinate_change_through_epics(axis_index, instance)
         # this also updates the epics motorfields instance, so there shouldn't be much more to change TBH. 
@@ -170,9 +170,10 @@ async def motor_record(instance, async_lib, defaults=None,
     axpar = board_parameters.axes_parameters[axis_index]
 
     fields: MotorFields = instance.field_inst
+    # apparently on startup, fields.set_use_switch.value is 0, not 'Use', so we set it to make sure:
+    await fields.set_use_switch.write('Use')
     have_new_position = False
     motion_control.board_control.update_axis_parameters(axis_index)
-
 
     async def value_write_hook(instance, value):
         """
@@ -180,7 +181,7 @@ async def motor_record(instance, async_lib, defaults=None,
         """
         # This happens when a user puts to `motor.VAL`
         # first, we check if we should move at all, or if it is a call to adjust the calibration using the EPICS SET flag:
-        if fields.set_use_switch.value==1 and not bool(fields.ignore_set_field.value):
+        if fields.set_use_switch.value=='Set' and not bool(fields.ignore_set_field.value):
             logging.info('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
             await motion_control.coordinate_change_through_epics(axis_index, instance, value)
             return # nothing more to do.
@@ -207,7 +208,6 @@ async def motor_record(instance, async_lib, defaults=None,
     # await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
     await update_epics_motorfields_instance(axpar, instance) # initial update of the EPICS fields. from this point on we can sync
     # # check if settable values from EPICS require us to do anything
-    logging.info(f'board_pv_group line 210: {fields.set_use_mode.value=}')
     await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)
 
     while True:
@@ -238,9 +238,9 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
-        logging.info(f"Checking backlash: are we there yet? {motion_control.are_we_there_yet(axpar, axpar.target_coordinate)}, {axpar.is_move_interrupted=}, {fields.set_use_switch.value=}")
+        logging.debug(f"Checking backlash: are we there yet? {motion_control.are_we_there_yet(axpar, axpar.target_coordinate)}, {axpar.is_move_interrupted=}, {fields.set_use_switch.value=}")
         # while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
-        while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted) and fields.set_use_switch.value==0: # set_use_switch apparently is not a string.
+        while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted) and fields.set_use_switch.value=='Use': # set_use_switch apparently is not a string.
             await update_epics_motorfields_instance(axpar, instance, 'moving')
             logging.debug(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
             await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, include_backlash_when_required=False, EPICS_fields_instance=instance)
