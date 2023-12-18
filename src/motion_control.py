@@ -72,7 +72,7 @@ class MotionControl:
             return "DVAL", delta
 
         # rval
-        delta = fields.raw_desired_value.value - axpar.user_to_raw(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
+        delta = fields.raw_desired_value.value - axpar.user_to_raw(axpar.actual_coordinate_RBV)
         if not np.isclose(delta, 0, atol = atol):
             return "RVAL", delta
 
