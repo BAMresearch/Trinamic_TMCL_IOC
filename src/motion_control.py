@@ -101,7 +101,7 @@ class MotionControl:
         changed_field, delta = self.find_mismatched_calibration_field(axpar, fields, valuevalue)
 
         # find out if the fixed offset FOFF is set to Fixed or Variable:
-        logging.info(f'{fields.offset_freeze_switch.value=}')
+        logging.debug(f'{fields.offset_freeze_switch.value=}')
         if fields.offset_freeze_switch.value=='Variable':
             self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         else:

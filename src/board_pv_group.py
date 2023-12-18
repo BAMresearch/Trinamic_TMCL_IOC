@@ -244,7 +244,7 @@ async def motor_record(instance, async_lib, defaults=None,
         # while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
         while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted) and fields.set_use_switch.value=='Use': # set_use_switch apparently is not a string.
             await update_epics_motorfields_instance(axpar, instance, 'moving')
-            logging.debug(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
+            logging.info(f"Backlash moving from {axpar.actual_coordinate_RBV} to {axpar.target_coordinate} on axis {axis_index}")
             await motion_control.kickoff_move_to_coordinate(axis_index, axpar.target_coordinate, include_backlash_when_required=False, EPICS_fields_instance=instance)
             # now we await completion again
             await motion_control.board_control.await_move_completion(axis_index, instance)
