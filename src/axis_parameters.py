@@ -63,7 +63,7 @@ class AxisParameters:
 
     actual_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # # during a backlash move, the immediate target read from the board will deviate from the final target coordinate. 
-    immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    # immediate_target_coordinate_RBV: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this is the eventual / final target coordinate. 
     target_coordinate: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
     # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.

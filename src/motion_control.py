@@ -132,6 +132,7 @@ class MotionControl:
             axpar.positive_user_limit += delta
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
+            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return # things might go squiffy if we now also do the below...
         elif changed_field == "DVAL": 
             # update RVAL without moving. Also change the offset so VAL stays the same. 
@@ -142,6 +143,7 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
+            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         elif changed_field == "RVAL":
             # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
@@ -153,6 +155,7 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
+            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         else:
             logging.warning(f'Set field changes for changes in {changed_field=} with {delta=} are not supported yet.')
@@ -173,13 +176,14 @@ class MotionControl:
         assert fields.offset_freeze_switch.value == 'Frozen', 'FOFF switch must be "Frozen" to use the coordinate_change_through_epics_set_fixed_foff method'
         # find out which field has changed:
         logging.info(f"Request for calibration change on {axis_index=} received. Will try changing {changed_field=} by {delta=}.")
-        if changed_field == "VAL" or changed_field=='DVAL' or changed_field=="RLV":
+        if changed_field == "VAL" or changed_field=="DVAL" or changed_field=="RLV":
             # change motor board value so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # and now we let nature take its course 
             self.board_control.update_axis_parameters(axis_index)
+            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return # things might go squiffy if we now also do the below...
         elif changed_field == "RVAL":
             # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
@@ -190,6 +194,7 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
+            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         # Add the changed_field OFF thingie, although with fixed offset, should anything happen really? let's not for now...
         else:
