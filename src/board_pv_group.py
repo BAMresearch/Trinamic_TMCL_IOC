@@ -172,6 +172,8 @@ async def motor_record(instance, async_lib, defaults=None,
     fields: MotorFields = instance.field_inst
     # apparently on startup, fields.set_use_switch.value is 0, not 'Use', so we set it to make sure:
     await fields.set_use_switch.write('Use')
+    # same with offset_freeze_switch. Set some default. 
+    await fields.offset_freeze_switch.write('Variable')
     have_new_position = False
     motion_control.board_control.update_axis_parameters(axis_index)
 
