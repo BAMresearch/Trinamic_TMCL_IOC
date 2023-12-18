@@ -93,7 +93,7 @@ class MotionControl:
         """
         fields: MotorFields = EPICS_motorfields_instance.fields_inst
         # check our assumptions:
-        assert fields.set_use_switch == 'Set', logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
+        assert fields.set_use_switch.value == 'Set', logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
         # find out what changed:
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
@@ -101,6 +101,7 @@ class MotionControl:
         changed_field, delta = self.find_mismatched_calibration_field(axpar, fields, valuevalue)
 
         # find out if the fixed offset FOFF is set to Fixed or Variable:
+        logging.info(f'{fields.offset_freeze_switch.value=}')
         if fields.offset_freeze_switch.value=='Variable':
             self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         else:
