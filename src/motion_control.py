@@ -54,7 +54,7 @@ class MotionControl:
         """
         rtol = 1e-5 
         atol = 1.5
-
+        logging.info('Finding mismatched field.')
         # value
         if valuevalue is not None:
             delta = valuevalue - axpar.actual_coordinate_RBV.to(ureg.Unit(fields.engineering_units.value)).magnitude
@@ -68,12 +68,12 @@ class MotionControl:
             return "RLV", delta
 
         # dval
-        delta = fields.dial_desired_value.value - axpar.user_to_dial(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
+        delta = fields.dial_readback_value.value - axpar.user_to_dial(axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude
         if not np.isclose(delta, 0, rtol = rtol):
             return "DVAL", delta
 
         # rval
-        delta = fields.raw_desired_value.value - axpar.user_to_raw(axpar.actual_coordinate_RBV)
+        delta = fields.raw_readback_value.value - axpar.user_to_raw(axpar.actual_coordinate_RBV)
         if not np.isclose(delta, 0, atol = atol):
             return "RVAL", delta
 
@@ -82,7 +82,8 @@ class MotionControl:
         if not np.isclose(delta, 0, rtol = rtol):
             return "OFF", delta
 
-        logging.warning("trying to find calibration field mismatch but VAL, DVAL, RLV, RVAL or OFF are not different")
+        # logging.warning("trying to find calibration field mismatch but VAL, DVAL, RLV, RVAL or OFF are not different")
+        # logging("No change detected")
         return "NotFound", 0
 
 
@@ -108,6 +109,7 @@ class MotionControl:
         else:
             await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         # after we're done with these, we update the EPICS fields: 
+        logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
         await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
     async def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
@@ -194,13 +196,15 @@ class MotionControl:
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
             await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         # Add the changed_field OFF thingie, although with fixed offset, should anything happen really? let's not for now...
         else:
-            logging.warning(f'Set field with fixed offset changes for changes in {changed_field=} with {delta=} are not supported yet.')
+            # suppressing for now...
+            # logging.warning(f'Set field with fixed offset changes for changes in {changed_field=} with {delta=} are not supported yet.')
             await asyncio.sleep(0)
 
     def user_coordinate_change_by_delta(self, axis_index_or_name: Union[int, str], delta: Union[ureg.Quantity, float], adjust_user_limits:bool=True) -> None:

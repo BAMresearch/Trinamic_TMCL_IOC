@@ -67,7 +67,7 @@ async def update_epics_motorfields_instance_moving(axpar: AxisParameters, instan
     # await fields.stop_pause_move_go.write('Go')
     await fields.motor_is_moving.write(1)
     await fields.done_moving_to_value.write(0)
-    await fields.dial_desired_value.write(axpar.user_to_dial(axpar.target_coordinate).to(ureg.Unit(fields.engineering_units.value)).magnitude)
+    # await fields.dial_desired_value.write(axpar.user_to_dial(axpar.target_coordinate).to(ureg.Unit(fields.engineering_units.value)).magnitude)
     
 async def epics_reset_stop_flag(fields: MotorFields) -> None:
     """resets the stop flag to 0"""
