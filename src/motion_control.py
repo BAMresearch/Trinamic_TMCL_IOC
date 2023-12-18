@@ -1,3 +1,4 @@
+import asyncio
 from typing import Union
 
 import numpy as np
@@ -103,13 +104,13 @@ class MotionControl:
         # find out if the fixed offset FOFF is set to Fixed or Variable:
         logging.debug(f'{fields.offset_freeze_switch.value=}')
         if fields.offset_freeze_switch.value=='Variable':
-            self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+            await self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         else:
-            self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+            await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         # after we're done with these, we update the EPICS fields: 
         await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
-    def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
+    async def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
         """
         When the "SET" field is 'Set' (not 'Use'), we have to update the links between the user, dial, and raw settings, as well as the high and low limits without moving the motor.
         This is used for calibration between the user and dial positions. Details in the EPICS motor record definition for the calibration-related fields. 
@@ -132,7 +133,7 @@ class MotionControl:
             axpar.positive_user_limit += delta
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
-            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return # things might go squiffy if we now also do the below...
         elif changed_field == "DVAL": 
             # update RVAL without moving. Also change the offset so VAL stays the same. 
@@ -143,7 +144,7 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
-            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         elif changed_field == "RVAL":
             # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
@@ -155,13 +156,14 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
-            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         else:
             logging.warning(f'Set field changes for changes in {changed_field=} with {delta=} are not supported yet.')
+            await asyncio.sleep(0)
 
 
-    def coordinate_change_through_epics_set_fixed_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
+    async def coordinate_change_through_epics_set_fixed_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
         """
         When the "SET" field is 'Set' (not 'Use'), we have to update the links between the user, dial, and raw settings, as well as the high and low limits without moving the motor.
         This is used for calibration between the user and dial positions. Details in the EPICS motor record definition for the calibration-related fields. 
@@ -183,7 +185,7 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # and now we let nature take its course 
             self.board_control.update_axis_parameters(axis_index)
-            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return # things might go squiffy if we now also do the below...
         elif changed_field == "RVAL":
             # update DVAL, then the offset so VAL stays the same. Pretty much the same procedure as above:
@@ -194,12 +196,12 @@ class MotionControl:
             self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
-            update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
             return 
         # Add the changed_field OFF thingie, although with fixed offset, should anything happen really? let's not for now...
         else:
             logging.warning(f'Set field with fixed offset changes for changes in {changed_field=} with {delta=} are not supported yet.')
-
+            await asyncio.sleep(0)
 
     def user_coordinate_change_by_delta(self, axis_index_or_name: Union[int, str], delta: Union[ureg.Quantity, float], adjust_user_limits:bool=True) -> None:
         """Changes the user coordinate by adjustment of the offset. For EPICS-dictated changes, adjust_user_limits should be set to False, as EPICS already updates the lower limit..."""
