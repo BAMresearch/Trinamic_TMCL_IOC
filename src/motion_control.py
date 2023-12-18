@@ -93,7 +93,7 @@ class MotionControl:
         """
         fields: MotorFields = EPICS_motorfields_instance.field_inst
         # check our assumptions:
-        assert fields.set_use_switch.value == 1, logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
+        assert fields.set_use_switch.value == 'Set', logging.error('coordinate_change_through_epics called, but the EPICS motorparameter SET field is not "Set"')
         # find out what changed:
         axis_index = self._resolve_axis_index(axis_index_or_name)
         axpar = self.board_control.boardpar.axes_parameters[axis_index]
