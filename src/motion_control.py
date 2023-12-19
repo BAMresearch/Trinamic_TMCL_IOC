@@ -104,16 +104,18 @@ class MotionControl:
 
         # find out if the fixed offset FOFF is set to Fixed or Variable:
         # logging.debug(f'{fields.offset_freeze_switch.value=}')
-        if changed_field != 'NotFound':
+        if (changed_field != 'NotFound') and (delta != 0):
+            # make sure we don't move
             MaxVelo = self.board_control.get_axis_single_parameter(axis_index, 'MaxVelocity')
             self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', 0)
-
+            # change action depending on whether offset is frozen or variable
             if fields.offset_freeze_switch.value=='Variable':
                 await self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
             else:
                 await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
-            # after we're done with these, we update the EPICS fields: 
+            # make sure we can move again. 
             self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', MaxVelo)
+            # after we're done with these, we update the EPICS fields: 
             logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
             await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
