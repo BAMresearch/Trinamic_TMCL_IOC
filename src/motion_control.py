@@ -104,11 +104,15 @@ class MotionControl:
 
         # find out if the fixed offset FOFF is set to Fixed or Variable:
         logging.debug(f'{fields.offset_freeze_switch.value=}')
+        MaxVelo = self.board_control.get_axis_single_parameter(axis_index, 'MaxVelocity')
+        self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', 0)
+
         if fields.offset_freeze_switch.value=='Variable':
             await self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         else:
             await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
         # after we're done with these, we update the EPICS fields: 
+        self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', MaxVelo)
         logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
         await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
@@ -144,7 +148,7 @@ class MotionControl:
             axpar.user_offset -= delta # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
-            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -156,7 +160,7 @@ class MotionControl:
             axpar.user_offset -= axpar.steps_to_real_world(delta) # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
-            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -186,7 +190,7 @@ class MotionControl:
             # change motor board value so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
-            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # and now we let nature take its course 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -197,7 +201,7 @@ class MotionControl:
             assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
             self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
-            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
 
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)

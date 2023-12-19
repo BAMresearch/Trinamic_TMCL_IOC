@@ -77,6 +77,16 @@ class BoardControl:
     def set_axis_single_parameter(self, axis_index:int, parameter_string:str, value: int) -> None:
         self.set_axis_parameters(axis_index, [(parameter_string, value)])
 
+    def get_axis_single_parameter(self, axis_index:int, parameter_string:str) -> None:
+        with self.connection_manager.connect() as myInterface:
+            self.module = self.boardpar.pytrinamic_module(myInterface, module_id=self.boardpar.board_module_id)
+            axis = self.module.motors[axis_index]
+            parameter = getattr(axis.AP, parameter_string, None)
+            if parameter is None: 
+                logging.warning(f'Tried to set axis parameter with name {parameter_string}, but could not find it in the Trinamic axis parameter (axis.AP) model')
+            else:
+                axis.get_axis_parameter(parameter)
+
     def set_axis_parameters(self, axis_index:int, parval_list: List[Tuple[str, int]]) -> None:
         """
         Convenience function when you have to set a single axis parameter from somewhere else. 
