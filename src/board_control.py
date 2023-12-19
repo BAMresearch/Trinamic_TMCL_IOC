@@ -84,8 +84,9 @@ class BoardControl:
             parameter = getattr(axis.AP, parameter_string, None)
             if parameter is None: 
                 logging.warning(f'Tried to set axis parameter with name {parameter_string}, but could not find it in the Trinamic axis parameter (axis.AP) model')
+                return None
             else:
-                axis.get_axis_parameter(parameter)
+                return axis.get_axis_parameter(parameter)
 
     def set_axis_parameters(self, axis_index:int, parval_list: List[Tuple[str, int]]) -> None:
         """
