@@ -103,18 +103,19 @@ class MotionControl:
         changed_field, delta = self.find_mismatched_calibration_field(axpar, fields, valuevalue)
 
         # find out if the fixed offset FOFF is set to Fixed or Variable:
-        logging.debug(f'{fields.offset_freeze_switch.value=}')
-        MaxVelo = self.board_control.get_axis_single_parameter(axis_index, 'MaxVelocity')
-        self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', 0)
+        # logging.debug(f'{fields.offset_freeze_switch.value=}')
+        if changed_field != 'NotFound':
+            MaxVelo = self.board_control.get_axis_single_parameter(axis_index, 'MaxVelocity')
+            self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', 0)
 
-        if fields.offset_freeze_switch.value=='Variable':
-            await self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
-        else:
-            await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
-        # after we're done with these, we update the EPICS fields: 
-        self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', MaxVelo)
-        logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
-        await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
+            if fields.offset_freeze_switch.value=='Variable':
+                await self.coordinate_change_through_epics_set_no_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+            else:
+                await self.coordinate_change_through_epics_set_fixed_foff(axis_index_or_name, EPICS_motorfields_instance, changed_field, delta)
+            # after we're done with these, we update the EPICS fields: 
+            self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', MaxVelo)
+            logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
+            await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
     async def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
         """
