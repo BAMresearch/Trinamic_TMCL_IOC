@@ -311,7 +311,7 @@ class MotionControl:
         self.board_control.update_axis_parameters(axis_params.axis_number)
         target_steps = axis_params.user_to_raw(target_coordinate)
         actual_steps = axis_params.user_to_raw(axis_params.actual_coordinate_RBV)
-        logging.info(f'Are we there yet? {target_steps=}, {actual_steps=}')
+        logging.info(f'Are we there yet? {target_steps=}, {actual_steps=}, so {np.isclose(target_steps, actual_steps, atol=1.5)}')
         return np.isclose(target_steps, actual_steps, atol=1.5)
 
     async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], include_backlash_when_required:bool=True, EPICS_fields_instance:Union[pvproperty, None]=None  ) -> None:
