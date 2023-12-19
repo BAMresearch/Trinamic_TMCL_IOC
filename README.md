@@ -2,7 +2,7 @@
 
 ## Overview
 
-Trinamic TMCM-6214 TMCL IOC is a Python package designed for controlling stepper motors connected to a Trinamic TMCM-6214 board using the TMCL language. Since it is implementing the TMCL protocol, it should be easy to adapt to other Trinamic motor controller boards. This package assumes the motor controller is connected over a machine network via a network-to-serial converter, but the underlying PyTrinamic package allows for other connections too. 
+Trinamic TMCM-6214 TMCL IOC is a Python package designed for controlling stepper motors connected to a Trinamic board using the TMCL language (all boards supported by PyTrinamic should now work). Since it is implementing the TMCL protocol, it should be easy to adapt to other Trinamic motor controller boards. This package assumes the motor controller is connected over a machine network via a network-to-serial converter, but the underlying PyTrinamic package allows for other connections too. 
 
 This allows the control of attached motors via the EPICS Channel-Access virtual communications bus. If EPICS is not desired, plain Pythonic control via motion_control should also be possible. An example for this will be provided in the example.ipynb Jupyter notebook.
 
@@ -74,8 +74,9 @@ Caproto exposes quite a few of the EPICS motor fields by default. The following 
   - DRBV - Dial position read-back value (EGU)
   - DVAL - Dial desired value
   - EGU  - Engineering base units, e.g. 'mm' for millimeters. 
+  - FOFF - Fix OFFset. In combination with SET can be used to adjust the motor steps value on the board to follow changes in e.g. VAL or DRBV.
   - HLS  - high-limit switch
-  - IGSET - ignores the SET field... why is this even here. 
+  - IGSET - ignores the SET field... why is this even here. Do you want me to SET or not?
   - LLS  - low-limit switch
   - MOVN - motor is moving
   - MRES - Motor step size (EGU/step)
@@ -109,7 +110,7 @@ Tasks to do (-), to revisit later (r) and done (v) include:
   v check the limit switch setting: is the "right" limit switch the negative or positive limit?
   v assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
   r write configuration to state file. this needs some extra work to make the output a bit more useful. 
-  - fix IOC crash when board does not respond (temporarily) to communication - is a PyTrinamics RuntimeError... not sure how. 
+  - fix IOC crash when board does not respond (temporarily) to communication - is a PyTrinamics RuntimeError... not sure how unless I encapsulate all communication calls in a try.. except statement
   - check that the board retains settings when powered off -> it doesn't. 
   v At the moment it's not doing an EPICS-to-axis_parameter sync. Fixed.
   - check for power cycle (done) and restore on fail (not yet done)
