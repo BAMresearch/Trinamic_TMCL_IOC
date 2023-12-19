@@ -54,7 +54,7 @@ class MotionControl:
         """
         rtol = 1e-5 
         atol = 1.5
-        logging.info('Finding mismatched field.')
+        logging.debug('Finding mismatched field.')
         # value
         if valuevalue is not None:
             delta = valuevalue - axpar.actual_coordinate_RBV.to(ureg.Unit(fields.engineering_units.value)).magnitude
@@ -116,7 +116,7 @@ class MotionControl:
             # make sure we can move again. 
             self.board_control.set_axis_single_parameter(axis_index, 'MaxVelocity', MaxVelo)
             # after we're done with these, we update the EPICS fields: 
-            logging.info('coordinate_change_through_epics, calling update_epics_motorfields_instance')
+            logging.debug('coordinate_change_through_epics, calling update_epics_motorfields_instance')
             await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
 
     async def coordinate_change_through_epics_set_no_foff(self, axis_index_or_name: Union[int, str], EPICS_motorfields_instance:pvproperty, changed_field:str, delta:Union[float, int]):
@@ -249,7 +249,7 @@ class MotionControl:
         await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
         if axpar.is_move_interrupted:
             # don't do anything else. 
-            logging.info('Homing interrupted.')
+            logging.debug('Homing interrupted.')
             return
         
         # good to go, home the axis
@@ -260,7 +260,7 @@ class MotionControl:
         await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
         if axpar.is_move_interrupted:
             # don't do anything else. 
-            logging.info('Homing interrupted.')
+            logging.debug('Homing interrupted.')
             return
         logging.info(f"Axis {axis_index} homed, setting parameters.")
         # set the stage motion range limit to the end switch distance
@@ -277,7 +277,7 @@ class MotionControl:
         await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
         if axpar.is_move_interrupted:
             # don't do anything else. 
-            logging.info('Homing interrupted.')
+            logging.debug('Homing interrupted.')
             return
 
         # indicate the stage is now homed.
@@ -304,7 +304,7 @@ class MotionControl:
 
     def reset_move_interrupt(self, axis_params:AxisParameters):
         if axis_params.is_move_interrupted:
-            logging.info(f'is_move_interrupted is True, but reset requested. Setting to False.')
+            logging.debug(f'is_move_interrupted is True, but reset requested. Setting to False.')
         axis_params.is_move_interrupted = False
         return
 
@@ -313,7 +313,7 @@ class MotionControl:
         self.board_control.update_axis_parameters(axis_params.axis_number)
         target_steps = axis_params.user_to_raw(target_coordinate)
         actual_steps = axis_params.user_to_raw(axis_params.actual_coordinate_RBV)
-        logging.info(f'Are we there yet? {target_steps=}, {actual_steps=}, so {np.isclose(target_steps, actual_steps, atol=1.5)}')
+        logging.debug(f'Are we there yet? {target_steps=}, {actual_steps=}, so {np.isclose(target_steps, actual_steps, atol=1.5)}')
         return np.isclose(target_steps, actual_steps, atol=1.5)
 
     async def kickoff_move_to_coordinate(self, axis_index_or_name: Union[int, str], target_coordinate: Union[ureg.Quantity, str, float, int], include_backlash_when_required:bool=True, EPICS_fields_instance:Union[pvproperty, None]=None  ) -> None:

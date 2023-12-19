@@ -58,27 +58,27 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     if fields.relative_value.value != 0:
         delta = fields.relative_value.value
         await fields.relative_value.write(0)
-        logging.info(f'Relative value changed by {fields.relative_value.value=}')
+        logging.debug(f'Relative value changed by {fields.relative_value.value=}')
         await fields.value_write_hook(instance, axpar.actual_coordinate_RBV + ureg.Quantity(delta, fields.engineering_units.value))
 
     # 1) check if the user offset has been changed from EPICS
     if fields.user_offset.value != axpar.user_offset.to(ureg.Unit(fields.engineering_units.value)).magnitude:
         mc.user_coordinate_change_by_delta(axis_index, (fields.user_offset.value - axpar.user_offset.to(axpar.base_realworld_unit).magnitude)*axpar.base_realworld_unit, adjust_user_limits=False)
-        logging.info("user offset changed")
+        logging.debug("user offset changed")
         change = True
 
     # 2) check if the user lower limit has been changed from EPICS
     if fields.user_low_limit.value != axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude:
         axpar.negative_user_limit = fields.user_low_limit.value*ureg.Unit(fields.engineering_units.value)
         # also update the dial low limit. adjusted to the EPICS standard
-        logging.info("negative user limit changed") 
+        logging.debug("negative user limit changed") 
         await fields.dial_low_limit.write(axpar.user_to_dial(axpar.negative_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
             
     if fields.dial_low_limit.value != axpar.user_to_dial(axpar.negative_user_limit).to(ureg.Unit(fields.engineering_units.value)).magnitude:
         axpar.negative_user_limit = axpar.user_to_dial(fields.dial_low_limit.value*ureg.Unit(fields.engineering_units.value))
         # also update the user low limit
-        logging.info("dial low limit changed")
+        logging.debug("dial low limit changed")
         await fields.user_low_limit.write(axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude)
         change = True
 
@@ -112,11 +112,11 @@ async def update_axpar_from_epics_and_take_action(mc: MotionControl, axis_index:
     
     # 7) check if the axis direction has been changed from EPICS
     if fields.user_direction.value == 'Neg' and not axpar.invert_axis_direction:
-        logging.info(f"Inverting axis direction for axis {axis_index} based on EPICS direction setting")
+        logging.debug(f"Inverting axis direction for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = True
         change = True
     elif fields.user_direction.value == 'Pos' and axpar.invert_axis_direction:
-        logging.info(f"Uninverting axis directionn (i.e. normal direction) for axis {axis_index} based on EPICS direction setting")
+        logging.debug(f"Uninverting axis directionn (i.e. normal direction) for axis {axis_index} based on EPICS direction setting")
         axpar.invert_axis_direction = False
         change = True
     
@@ -185,7 +185,7 @@ async def motor_record(instance, async_lib, defaults=None,
         # This happens when a user puts to `motor.VAL`
         # first, we check if we should move at all, or if it is a call to adjust the calibration using the EPICS SET flag:
         if fields.set_use_switch.value=='Set' and not bool(fields.ignore_set_field.value):
-            logging.info('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
+            logging.debug('Move called with EPICS set_use_switch set to "Set". Calling calibration method instead.')
             await motion_control.coordinate_change_through_epics(axis_index, instance, value)
             return # nothing more to do.
         motion_control.reset_move_interrupt(axpar) # nothing special, just resets the flag. We only want to do this at the very start of a new move
@@ -241,7 +241,7 @@ async def motor_record(instance, async_lib, defaults=None,
         await motion_control.board_control.await_move_completion(axis_index, instance)
 
         # backlash if we must
-        logging.info(f"Checking backlash: are we there yet? {motion_control.are_we_there_yet(axpar, axpar.target_coordinate)}, {axpar.is_move_interrupted=}, {fields.set_use_switch.value=}")
+        logging.debug(f"Checking backlash: are we there yet? {motion_control.are_we_there_yet(axpar, axpar.target_coordinate)}, {axpar.is_move_interrupted=}, {fields.set_use_switch.value=}")
         # while motion_control.do_backlash_move: # maybe there's a cleverer move, e.g. by checking if target_coordinate and actual_coordinate_RBV match already
         while not(motion_control.are_we_there_yet(axpar, axpar.target_coordinate)) and not(axpar.is_move_interrupted) and fields.set_use_switch.value=='Use': # set_use_switch apparently is not a string.
             await update_epics_motorfields_instance(axpar, instance, 'moving')
