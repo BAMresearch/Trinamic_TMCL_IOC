@@ -1,8 +1,8 @@
-# Trinamic TMCM-6214 TMCL IOC
+# Trinamic TMCL IOC
 
 ## Overview
 
-Trinamic TMCM-6214 TMCL IOC is a Python package designed for controlling stepper motors connected to a Trinamic board using the TMCL language (all boards supported by PyTrinamic should now work). Since it is implementing the TMCL protocol, it should be easy to adapt to other Trinamic motor controller boards. This package assumes the motor controller is connected over a machine network via a network-to-serial converter, but the underlying PyTrinamic package allows for other connections too. 
+Trinamic TMCL IOC is a Python package designed for controlling stepper motors connected to a Trinamic board using the TMCL language (all boards supported by PyTrinamic should now work, has been tested on the TMCM 6110 and the TMCM 6214). Since it is implementing the TMCL protocol, it should be easy to adapt to other Trinamic motor controller boards. This package assumes the motor controller is connected over a machine network via a network-to-serial converter, but the underlying PyTrinamic package allows for other connections too. 
 
 This allows the control of attached motors via the EPICS Channel-Access virtual communications bus. If EPICS is not desired, plain Pythonic control via motion_control should also be possible. An example for this will be provided in the example.ipynb Jupyter notebook.
 
