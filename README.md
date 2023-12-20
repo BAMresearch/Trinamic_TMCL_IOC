@@ -100,19 +100,9 @@ Most of these have been tested. Others may be easily implementable; add them to 
 
 This package is in the beta stage, and should be functional. Contributions and feedback are welcome.
 Tasks to do (-), to revisit later (r) and done (v) include: 
-  v make a method that updates the axis parameters from the EPICS fields (in case we're adjusting the axis parameters via EPICS). 
-  v make a method that allows us to update the offset value. This should perhaps adjust the user limits too...
-  v make a convenience method that allows us to set the current position to zero user value
-  v make a method that starts a home action when HOMF or HOMR is set to 1. 
-  v enable and test axis inversion (parameter 251 on Trinamics boards) (enabled, not testd yet)
-  v tie the above together with a neat bow. 
-  v assure the axis does not move if we try a move beyond limits. 
-  v check the limit switch setting: is the "right" limit switch the negative or positive limit?
-  v assure we're doing a new backlash move if we move to a new position during a previous backlash move. 
-  r write configuration to state file. this needs some extra work to make the output a bit more useful. 
+  - write configuration to state file. this needs some extra work to make the output a bit more useful. 
   - fix IOC crash when board does not respond (temporarily) to communication - is a PyTrinamics RuntimeError... not sure how unless I encapsulate all communication calls in a try.. except statement
   - check that the board retains settings when powered off -> it doesn't. 
-  v At the moment it's not doing an EPICS-to-axis_parameter sync. Fixed.
   - check for power cycle (done) and restore on fail (not yet done)
 
 ## License
