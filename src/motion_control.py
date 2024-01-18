@@ -150,8 +150,14 @@ class MotionControl:
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
             axpar.user_offset -= delta # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
-            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
-            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            # should be quicker like this:
+            self.board_control.set_axis_parameters(axis_index, [
+                ('ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV)),
+                ('TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            ])
+            
+            # self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -162,8 +168,13 @@ class MotionControl:
             assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
             axpar.user_offset -= axpar.steps_to_real_world(delta) # VAL should not change, neither the associated limits
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
-            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
-            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            self.board_control.set_axis_parameters(axis_index, [
+                ('ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV)),
+                ('TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            ])
+
+            # self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
+            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV))
             # update the relevant fields, this updates the thing too.. 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -192,8 +203,13 @@ class MotionControl:
         if changed_field == "VAL" or changed_field=="DVAL" or changed_field=="RLV":
             # change motor board value so that the current VAL is equal to the requested VAL. 
             delta = quantity_converter(delta, ureg.Unit(fields.engineering_units.value))
-            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
-            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            self.board_control.set_axis_parameters(axis_index, [
+                ('ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta)),
+                ('TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            ])
+
+            # self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
+            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV + delta))
             # and now we let nature take its course 
             self.board_control.update_axis_parameters(axis_index)
             # await update_epics_motorfields_instance(axpar, EPICS_motorfields_instance)
@@ -203,8 +219,13 @@ class MotionControl:
             # update RVAL without moving. Also change the offset so VAL stays the same. 
             assert isinstance(delta, int), logging.error(f'Change in calibration requested due to change in RAW, but delta provided is not int. {delta=} is of type {type(delta)=}')
             # send update to the board with updated hardware raw position. This can now be calculated from actual_coordinate_RBV since the offset is changed. 
-            self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
-            self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            self.board_control.set_axis_parameters(axis_index, [
+                ('ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta),
+                ('TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            ])
+
+            # self.board_control.set_axis_single_parameter(axis_index, 'ActualPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
+            # self.board_control.set_axis_single_parameter(axis_index, 'TargetPosition', axpar.user_to_raw(axpar.actual_coordinate_RBV) + delta)
 
             # let nature take its course.
             self.board_control.update_axis_parameters(axis_index)
