@@ -220,7 +220,7 @@ async def motor_record(instance, async_lib, defaults=None,
             # we are not moving
             await epics_reset_stop_flag(fields)
             await asyncio.sleep(axpar.update_interval_nonmoving)
-            await motion_control.board_control.check_if_powercycle_occurred()
+            # await motion_control.board_control.check_if_powercycle_occurred()
             # update axis state:
             motion_control.board_control.update_axis_parameters(axis_index)
             # check if settable values have been changed from EPICS. Takes action if needed. This is only done when stopped.
