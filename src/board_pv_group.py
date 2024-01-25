@@ -209,6 +209,10 @@ async def motor_record(instance, async_lib, defaults=None,
     # await fields.velocity.write(defaults['velocity']) # we don't have this parameter explicitly in the axis parameters.
     # await fields.seconds_to_velocity.write(defaults['acceleration']) # we don't have this parameter explicitly in the axis parameters.
     # await fields.motor_step_size.write(defaults['resolution']) # we don't have this parameter explicitly in the axis parameters.
+    
+    # when we start up the first time, we set the target_coordinate to the actual_coordinate...
+    print(f'Starting up the motor record for axis with {axpar=} ')
+
     await update_epics_motorfields_instance(axpar, instance) # initial update of the EPICS fields. from this point on we can sync
     # # check if settable values from EPICS require us to do anything
     await update_axpar_from_epics_and_take_action(motion_control, axis_index, instance)

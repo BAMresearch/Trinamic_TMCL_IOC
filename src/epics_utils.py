@@ -23,6 +23,7 @@ async def update_epics_motorfields_instance(axpar: AxisParameters, instance:pvpr
     # not fully implemented, just take on the values of velocity:
     await fields.bl_velocity.write(axpar.velocity.to(ureg.Unit(fields.engineering_units.value)/ureg.s).magnitude)
     await fields.bl_seconds_to_velocity.write(axpar.acceleration_duration.to(ureg.s).magnitude)
+    print(f'At this point, {axpar.target_coordinate=}, {axpar.actual_coordinate_RBV=}')
     await fields.difference_dval_drbv.write(axpar.user_to_dial(axpar.target_coordinate-axpar.actual_coordinate_RBV).to(ureg.Unit(fields.engineering_units.value)).magnitude)
     await fields.difference_rval_rrbv.write(axpar.dial_to_raw(axpar.target_coordinate-axpar.actual_coordinate_RBV))
     await fields.user_low_limit.write(axpar.negative_user_limit.to(ureg.Unit(fields.engineering_units.value)).magnitude) 
