@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import yaml
 import attr
@@ -17,9 +18,9 @@ class ConfigurationManagement:
         with open(config_file, 'r') as file:
             config = yaml.safe_load(file)
 
-        print(f'Loading board configuration: {config.get("board", {})}')
+        logging.debug(f'Loading board configuration: {config.get("board", {})}')
         ConfigurationManagement._update_board_parameters(config.get('board', {}), board_parameters)
-        print(f'Loading axis configuration: {config.get("axes", {})}')
+        logging.debug(f'Loading axis configuration: {config.get("axes", {})}')
         ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
 
     @staticmethod
