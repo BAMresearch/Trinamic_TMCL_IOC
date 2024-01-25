@@ -57,8 +57,8 @@ async def broadcast_precision_to_fields(record):
 
 class Motor(PVGroup):
     async def set_motor_params(self, instance, value):
-        print(f"Setter called with: {instance = }, {value = }")
-        print(vars(instance.field_inst))
+        logging.debug(f"Setter called with: {instance = }, {value = }")
+        logging.debug(vars(instance.field_inst))
 
     motor = pvproperty(
         value=0.0, put=set_motor_params, name="", record="motor", precision=3
