@@ -18,7 +18,9 @@ class ConfigurationManagement:
             config = yaml.safe_load(file)
 
         ConfigurationManagement._update_board_parameters(config.get('board', {}), board_parameters)
+        print(f'Loading board configuration: {config.get("board", {})}')
         ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
+        print(f'Loading axis configuration: {config.get("axes", {})}')
 
     @staticmethod
     def _update_board_parameters(board_config, board_parameters) -> None:
