@@ -29,7 +29,7 @@ def quantity_converter(input_value: Union[str, float, int, ureg.Quantity], targe
 
 def validate_user_limits(instance, attribute, value):
     # Adjusted limits considering the user offset, adjusted to the EPICS definition. 
-    print(f'Validating user limits: {instance.negative_user_limit=}, {instance.positive_user_limit=}, {instance.user_offset=}')
+    logging.debug(f'Validating user limits: {instance.negative_user_limit=}, {instance.positive_user_limit=}, {instance.user_offset=}')
     adjusted_negative_limit = instance.negative_user_limit - instance.user_offset
     adjusted_positive_limit = instance.positive_user_limit - instance.user_offset
 
