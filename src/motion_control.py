@@ -291,15 +291,15 @@ class MotionControl:
         # now we re-set the user limits to re-validate that they lie within the stage motion limit
         axpar.negative_user_limit = self.board_control.boardpar.axes_parameters[axis_index].negative_user_limit
         axpar.positive_user_limit = self.board_control.boardpar.axes_parameters[axis_index].positive_user_limit
-        logging.info(f"Axis {axis_index} homed, stage motion range set to {range_realworld}. Moving to center of range.")
-        # move out of limit range
-        self.board_control.move_axis(axis_index, int(range_steps/2))
-        await self.board_control.await_move_completion(axis_index, instance=EPICS_fields_instance)
-        await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
-        if axpar.is_move_interrupted:
-            # don't do anything else. 
-            logging.debug('Homing interrupted.')
-            return
+        # logging.info(f"Axis {axis_index} homed, stage motion range set to {range_realworld}. Moving to center of range.")
+        # # move out of limit range
+        # self.board_control.move_axis(axis_index, int(range_steps/2))
+        # await self.board_control.await_move_completion(axis_index, instance=EPICS_fields_instance)
+        # await self.check_for_move_interrupt(axis_index, instance=EPICS_fields_instance)
+        # if axpar.is_move_interrupted:
+        #     # don't do anything else. 
+        #     logging.debug('Homing interrupted.')
+        #     return
 
         # indicate the stage is now homed.
         logging.info(f"Axis {axis_index} homing complete.")
