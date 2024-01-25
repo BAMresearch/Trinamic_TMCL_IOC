@@ -212,6 +212,7 @@ async def motor_record(instance, async_lib, defaults=None,
     
     # when we start up the first time, we set the target_coordinate to the actual_coordinate...
     print(f'Starting up the motor record for axis with {axpar=} ')
+    axpar.target_coordinate = axpar.target_coordinate_RBV
 
     await update_epics_motorfields_instance(axpar, instance) # initial update of the EPICS fields. from this point on we can sync
     # # check if settable values from EPICS require us to do anything
