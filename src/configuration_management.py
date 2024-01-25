@@ -17,10 +17,10 @@ class ConfigurationManagement:
         with open(config_file, 'r') as file:
             config = yaml.safe_load(file)
 
-        ConfigurationManagement._update_board_parameters(config.get('board', {}), board_parameters)
         print(f'Loading board configuration: {config.get("board", {})}')
-        ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
+        ConfigurationManagement._update_board_parameters(config.get('board', {}), board_parameters)
         print(f'Loading axis configuration: {config.get("axes", {})}')
+        ConfigurationManagement._update_axes_parameters(config.get('axes', []), board_parameters)
 
     @staticmethod
     def _update_board_parameters(board_config, board_parameters) -> None:

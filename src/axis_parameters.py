@@ -70,9 +70,9 @@ class AxisParameters:
     # this one is automatically set on home_awit_and_set_limits operation. initially set large to avoid issues on configuration loading.
     stage_motion_limit_RBV: ureg.Quantity = attr.field(default='99999999 mm', validator=validate_quantity, converter=quantity_converter)
     # user limits must always lie within the stage motion limits. It is validated for that when set. They are used in the motor motions to ensure that the motor does not move beyond the stage motion limits.
-    user_offset: ureg.Quantity = attr.field(default='50.0 mm', validator=validate_quantity, converter=quantity_converter)
-    negative_user_limit: ureg.Quantity = attr.field(default='-40 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
-    positive_user_limit: ureg.Quantity = attr.field(default='150 mm', validator=[validate_quantity, validate_user_limits], converter=quantity_converter)
+    user_offset: ureg.Quantity = attr.field(default='0.0 mm', validator=validate_quantity, converter=quantity_converter)
+    negative_user_limit: ureg.Quantity = attr.field(default='-40 mm', validator=[validate_quantity], converter=quantity_converter)
+    positive_user_limit: ureg.Quantity = attr.field(default='150 mm', validator=[validate_quantity], converter=quantity_converter)
 
     # some flags to indicate the state of the axis
     is_moving_RBV: bool = attr.field(default=False)
@@ -89,6 +89,9 @@ class AxisParameters:
     axis_number: int = attr.field(default=0) # axis number on the board
     short_id: str = attr.field(default="Motor1") # short ID for the axis, should be alphanumeric
     description: str = attr.field(default="TMCM-6214 Axis") # description of the axis
+
+    def __attrs_post_init__(self):
+        validate_user_limits(self, None, None)
 
     @property
     def direction(self) -> int:
